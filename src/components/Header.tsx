@@ -5,7 +5,17 @@ import { Sun, Moon } from "lucide-react";
 import { useEffect, useState } from "react";
 import ProfileDropdown from "./ProfileDropdown";
 
-export default function AdminHeader() {
+interface HeaderProps {
+  title?: string;
+  showTitle?: boolean;
+  variant?: "dashboard" | "admin";
+}
+
+export default function Header({
+  title,
+  showTitle = false,
+  variant = "dashboard",
+}: HeaderProps) {
   const [mounted, setMounted] = useState(false);
   const themeContext = useTheme();
 
@@ -13,18 +23,24 @@ export default function AdminHeader() {
     setMounted(true);
   }, []);
 
+  // Determine title based on variant if not provided
+  const displayTitle =
+    title || (variant === "admin" ? "Admin Dashboard" : "Dashboard");
+
   // Don't render theme toggle until mounted (prevents hydration mismatch)
   if (!mounted) {
     return (
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 lg:px-8 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Admin Dashboard
-            </h1>
-          </div>
+          {(showTitle || variant === "admin") && (
+            <div className="flex items-center space-x-4">
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {displayTitle}
+              </h1>
+            </div>
+          )}
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 ml-auto">
             {/* Placeholder for theme toggle */}
             <div className="w-9 h-9"></div>
             {/* Placeholder for profile dropdown */}
@@ -40,13 +56,15 @@ export default function AdminHeader() {
   return (
     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 lg:px-8 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Admin Dashboard
-          </h1>
-        </div>
+        {(showTitle || variant === "admin") && (
+          <div className="flex items-center space-x-4">
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {displayTitle}
+            </h1>
+          </div>
+        )}
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 ml-auto">
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}

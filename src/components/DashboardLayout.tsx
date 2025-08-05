@@ -3,8 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
-import AdminHeader from "./AdminHeader";
-import DashboardHeader from "./DashboardHeader";
+import Header from "./Header";
 import { getCurrentUser } from "@/lib/auth-utils";
 import { useSidebar } from "@/contexts/SidebarContext";
 
@@ -48,8 +47,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           isCollapsed ? "lg:pl-16" : "lg:pl-64"
         }`}
       >
-        {/* Dashboard Header - show for all dashboard pages */}
-        {isAdminPage ? <AdminHeader /> : <DashboardHeader />}
+        {/* Header - unified component for all dashboard pages */}
+        <Header variant={isAdminPage ? "admin" : "dashboard"} />
 
         <main className="px-4 lg:px-8 py-6">
           <div className="max-w-7xl mx-auto">{children}</div>

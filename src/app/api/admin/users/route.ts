@@ -1,64 +1,38 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { createClient as createServerClient } from "@/lib/supabase/server";
-
-// Create admin client with service role key
-const createAdminClient = () => {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-};
+import { NextRequest } from "next/server";
+import {
+  withAuth,
+  validateRequiredFields,
+  createAdminClient,
+  errorResponse,
+  successResponse,
+} from "@/lib/api-middleware";
 
 export async function POST(request: NextRequest) {
+  // Use middleware for authentication and authorization
+  const authResult = await withAuth(request, {
+    requireRole: ["admin", "superadmin"],
+  });
+
+  if (!authResult.success) {
+    return authResult.response!;
+  }
+
+  const { user } = authResult;
+
   try {
-    // Use server-side auth
-    const { supabase } = createServerClient(request);
+    const body = await request.json();
+    const { email, password, username, role } = body;
 
-    // Check if user is authenticated
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError || !session?.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    // Get user profile to check role
-    const { data: userProfile, error: userProfileError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", session.user.id)
-      .single();
-
-    if (userProfileError || !userProfile) {
-      return NextResponse.json(
-        { error: "User profile not found" },
-        { status: 401 }
-      );
-    }
-
-    // Check if user has admin or superadmin role
-    if (!["admin", "superadmin"].includes(userProfile.role)) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
-
-    const { email, password, username, role } = await request.json();
-
-    if (!email || !password || !username || !role) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
+    // Validate required fields using middleware
+    const validation = validateRequiredFields(body, [
+      "email",
+      "password",
+      "username",
+      "role",
+    ]);
+    if (!validation.isValid) {
+      return errorResponse(
+        `Missing required fields: ${validation.missingFields?.join(", ")}`
       );
     }
 
@@ -74,14 +48,11 @@ export async function POST(request: NextRequest) {
 
     if (authError) {
       console.error("Auth error:", authError);
-      return NextResponse.json({ error: authError.message }, { status: 400 });
+      return errorResponse(authError.message);
     }
 
     if (!authData.user) {
-      return NextResponse.json(
-        { error: "Failed to create user" },
-        { status: 400 }
-      );
+      return errorResponse("Failed to create user");
     }
 
     // Upsert the user profile (the trigger creates a default profile, we need to update it with correct values)
@@ -92,7 +63,7 @@ export async function POST(request: NextRequest) {
           id: authData.user.id,
           username,
           role,
-          created_by: session.user.id,
+          created_by: user?.id,
         },
         {
           onConflict: "id",
@@ -103,13 +74,10 @@ export async function POST(request: NextRequest) {
       console.error("Profile upsert error:", upsertProfileError);
       // If profile upsert fails, clean up the auth user
       await adminSupabase.auth.admin.deleteUser(authData.user.id);
-      return NextResponse.json(
-        { error: upsertProfileError.message },
-        { status: 400 }
-      );
+      return errorResponse(upsertProfileError.message);
     }
 
-    return NextResponse.json({
+    return successResponse({
       message: `User ${email} created successfully`,
       user: {
         id: authData.user.id,
@@ -120,9 +88,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error creating user:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
   }
 }
