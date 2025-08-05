@@ -16,11 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`h-full bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased`}
-    >
-      <body className="h-full">
+    <html lang="en" suppressHydrationWarning>
+      <body className="h-full antialiased">
         <ThemeProvider>
           <SidebarProvider>
             <AuthGuard>

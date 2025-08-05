@@ -1,10 +1,85 @@
 @import "tailwindcss";
 
-:root {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@custom-variant dark (&:is(.dark *));
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  :root {
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
+
+    /* Primary colors - based on green (#3ECF8E) */
+    --color-primary-50: #f0fdf4;
+    --color-primary-100: #dcfce7;
+    --color-primary-200: #bbf7d0;
+    --color-primary-300: #86efac;
+    --color-primary-400: #4ade80;
+    --color-primary-500: #3ecf8e;
+    --color-primary-600: #35b67f;
+    --color-primary-700: #2c9d70;
+    --color-primary-800: #228461;
+    --color-primary-900: #1a6b51;
+
+    /* Secondary colors */
+    --color-secondary-50: #f5f3ff;
+    --color-secondary-100: #ede9fe;
+    --color-secondary-200: #ddd6fe;
+    --color-secondary-300: #c4b5fd;
+    --color-secondary-400: #a78bfa;
+    --color-secondary-500: #8b5cf6;
+    --color-secondary-600: #7c3aed;
+    --color-secondary-700: #6d28d9;
+    --color-secondary-800: #5b21b6;
+    --color-secondary-900: #4c1d95;
+
+    /* Status colors */
+    --color-success-50: #ecfdf5;
+    --color-success-500: #10b981;
+    --color-success-600: #059669;
+
+    --color-warning-50: #fffbeb;
+    --color-warning-500: #f59e0b;
+    --color-warning-600: #d97706;
+
+    --color-error-50: #fef2f2;
+    --color-error-500: #ef4444;
+    --color-error-600: #dc2626;
+  }
+
+  html.dark {
+    /* Invert colors for dark mode */
+    --color-primary-50: #1a6b51;
+    --color-primary-100: #228461;
+    --color-primary-200: #2c9d70;
+    --color-primary-300: #35b67f;
+    --color-primary-400: #3ecf8e;
+    --color-primary-500: #4ade80;
+    --color-primary-600: #86efac;
+    --color-primary-700: #bbf7d0;
+    --color-primary-800: #dcfce7;
+    --color-primary-900: #f0fdf4;
+
+    --color-secondary-50: #4c1d95;
+    --color-secondary-100: #5b21b6;
+    --color-secondary-200: #6d28d9;
+    --color-secondary-300: #7c3aed;
+    --color-secondary-400: #8b5cf6;
+    --color-secondary-500: #a78bfa;
+    --color-secondary-600: #c4b5fd;
+    --color-secondary-700: #ddd6fe;
+    --color-secondary-800: #ede9fe;
+    --color-secondary-900: #f5f3ff;
+  }
+
+  /* Global theme styles */
+
+  body {
+    font-family: "Ubuntu", Arial, Helvetica, sans-serif;
+    background-color: white;
+    color: rgb(17 24 39); /* gray-900 */
+  }
+
+  html.dark body {
+    background-color: rgb(17 24 39); /* gray-900 */
+    color: rgb(243 244 246); /* gray-100 */
+  }
 }

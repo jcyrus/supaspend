@@ -6,7 +6,6 @@ import {
   Home,
   Plus,
   BarChart3,
-  DollarSign,
   Users,
   Menu,
   X,
@@ -16,6 +15,7 @@ import {
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "@/lib/auth-utils";
 import { useSidebar } from "@/contexts/SidebarContext";
+import Image from "next/image";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -55,10 +55,10 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="flex items-center px-4 border-b border-gray-200 dark:border-gray-700 py-6">
         <Link href="/dashboard" className="flex items-center space-x-2">
-          <DollarSign className="h-8 w-8 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+          <Image src="/logo.webp" alt="Supaspend Logo" width={32} height={32} />
           {!isCollapsed && (
-            <span className="text-xl font-bold text-gray-900 dark:text-white truncate">
-              Petty Cash
+            <span className="text-xl font-bold text-primary-500 dark:text-white truncate">
+              SupaSpend
             </span>
           )}
         </Link>
@@ -116,7 +116,12 @@ export default function Sidebar() {
       >
         <div className="flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700 py-3">
           <Link href="/dashboard" className="flex items-center space-x-2">
-            <DollarSign className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            <Image
+              src="/logo.webp"
+              alt="Petty Cash Logo"
+              width={32}
+              height={32}
+            />
             <span className="text-xl font-bold text-gray-900 dark:text-white">
               Petty Cash
             </span>
@@ -161,9 +166,15 @@ export default function Sidebar() {
           <Menu className="h-6 w-6" />
         </button>
         <Link href="/dashboard" className="flex items-center space-x-2">
-          <DollarSign className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <Image
+            src="/logo.webp"
+            alt="SupaSpend Logo"
+            width={32}
+            height={32}
+            className="h-6 w-6"
+          />
           <span className="text-lg font-bold text-gray-900 dark:text-white">
-            Petty Cash Tracker
+            SupaSpend
           </span>
         </Link>
         <div className="w-10" /> {/* Spacer for centering */}
