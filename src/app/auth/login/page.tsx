@@ -5,13 +5,18 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 
 export default function LoginPage() {
   const supabase = createClient();
   const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+
+  // Toggle function for next-themes
+  const toggleTheme = () => {
+    setTheme(theme === "light" ? "dark" : "light");
+  };
 
   useEffect(() => {
     const checkUser = async () => {
@@ -36,7 +41,7 @@ export default function LoginPage() {
     return () => subscription.unsubscribe();
   }, [supabase, router]);
 
-  // Force input text color in dark mode
+  // Force input text color based on current theme
   useEffect(() => {
     const addInputStyles = () => {
       const existingStyle = document.getElementById("auth-input-override");
@@ -46,29 +51,58 @@ export default function LoginPage() {
 
       const style = document.createElement("style");
       style.id = "auth-input-override";
-      style.innerHTML = `
-        .supabase-auth-ui_ui input[type="email"],
-        .supabase-auth-ui_ui input[type="password"],
-        .supabase-auth-ui_ui input[type="text"] {
-          color: white !important;
-          background-color: #374151 !important;
-          border-color: #4b5563 !important;
-        }
-        .supabase-auth-ui_ui input[type="email"]::placeholder,
-        .supabase-auth-ui_ui input[type="password"]::placeholder,
-        .supabase-auth-ui_ui input[type="text"]::placeholder {
-          color: #9ca3af !important;
-        }
-        .supabase-auth-ui_ui input[type="email"]:focus,
-        .supabase-auth-ui_ui input[type="password"]:focus,
-        .supabase-auth-ui_ui input[type="text"]:focus {
-          color: white !important;
-          background-color: #374151 !important;
-          border-color: #3b82f6 !important;
-          outline: none !important;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
-        }
-      `;
+
+      if (theme === "dark") {
+        style.innerHTML = `
+          .supabase-auth-ui_ui input[type="email"],
+          .supabase-auth-ui_ui input[type="password"],
+          .supabase-auth-ui_ui input[type="text"] {
+            color: white !important;
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+          }
+          .supabase-auth-ui_ui input[type="email"]::placeholder,
+          .supabase-auth-ui_ui input[type="password"]::placeholder,
+          .supabase-auth-ui_ui input[type="text"]::placeholder {
+            color: #9ca3af !important;
+          }
+          .supabase-auth-ui_ui input[type="email"]:focus,
+          .supabase-auth-ui_ui input[type="password"]:focus,
+          .supabase-auth-ui_ui input[type="text"]:focus {
+            color: white !important;
+            background-color: #374151 !important;
+            border-color: #3b82f6 !important;
+            outline: none !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+          }
+        `;
+      } else {
+        // Light theme styles
+        style.innerHTML = `
+          .supabase-auth-ui_ui input[type="email"],
+          .supabase-auth-ui_ui input[type="password"],
+          .supabase-auth-ui_ui input[type="text"] {
+            color: #1f2937 !important;
+            background-color: white !important;
+            border-color: #d1d5db !important;
+          }
+          .supabase-auth-ui_ui input[type="email"]::placeholder,
+          .supabase-auth-ui_ui input[type="password"]::placeholder,
+          .supabase-auth-ui_ui input[type="text"]::placeholder {
+            color: #6b7280 !important;
+          }
+          .supabase-auth-ui_ui input[type="email"]:focus,
+          .supabase-auth-ui_ui input[type="password"]:focus,
+          .supabase-auth-ui_ui input[type="text"]:focus {
+            color: #1f2937 !important;
+            background-color: white !important;
+            border-color: #3b82f6 !important;
+            outline: none !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+          }
+        `;
+      }
+
       document.head.appendChild(style);
     };
 
@@ -85,7 +119,7 @@ export default function LoginPage() {
         style.remove();
       }
     };
-  }, []);
+  }, [theme]); // Added theme dependency
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -128,10 +162,10 @@ export default function LoginPage() {
                   colors: {
                     brand: "#3b82f6",
                     brandAccent: "#2563eb",
-                    inputText: "#ffffff",
-                    inputBackground: "#374151",
-                    inputBorder: "#4b5563",
-                    inputPlaceholder: "#9ca3af",
+                    inputText: theme === "dark" ? "#ffffff" : "#1f2937",
+                    inputBackground: theme === "dark" ? "#374151" : "#ffffff",
+                    inputBorder: theme === "dark" ? "#4b5563" : "#d1d5db",
+                    inputPlaceholder: theme === "dark" ? "#9ca3af" : "#6b7280",
                   },
                   space: {
                     inputPadding: "12px",

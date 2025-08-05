@@ -1,6 +1,6 @@
 "use client";
 
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 import { useEffect, useState } from "react";
 import ProfileDropdown from "./ProfileDropdown";
@@ -17,7 +17,7 @@ export default function Header({
   variant = "dashboard",
 }: HeaderProps) {
   const [mounted, setMounted] = useState(false);
-  const themeContext = useTheme();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
@@ -26,6 +26,11 @@ export default function Header({
   // Determine title based on variant if not provided
   const displayTitle =
     title || (variant === "admin" ? "Admin Dashboard" : "Dashboard");
+
+  // Toggle function for next-themes
+  const toggleTheme = () => {
+    setTheme(theme === "light" ? "dark" : "light");
+  };
 
   // Don't render theme toggle until mounted (prevents hydration mismatch)
   if (!mounted) {
@@ -50,8 +55,6 @@ export default function Header({
       </div>
     );
   }
-
-  const { theme, toggleTheme } = themeContext;
 
   return (
     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 lg:px-8 py-3">
