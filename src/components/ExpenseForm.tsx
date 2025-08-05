@@ -8,6 +8,24 @@ import { Save, ArrowLeft, Wallet, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { EXPENSE_CATEGORIES } from "@/types/database";
 import type { ExpenseInsert } from "@/types/database";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ExpenseForm() {
   const supabase = createClient();
@@ -103,8 +121,8 @@ export default function ExpenseForm() {
   };
 
   const getBalanceColor = (balance: number) => {
-    if (balance < 0) return "text-red-600 dark:text-red-400";
-    if (balance === 0) return "text-gray-600 dark:text-gray-400";
+    if (balance < 0) return "text-destructive";
+    if (balance === 0) return "text-muted-foreground";
     return "text-green-600 dark:text-green-400";
   };
 
@@ -131,217 +149,194 @@ export default function ExpenseForm() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center space-x-4 mb-4">
-          <Link
-            href="/dashboard"
-            className="flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5 mr-1" />
-            Back to Dashboard
-          </Link>
+          <Button variant="ghost" asChild>
+            <Link href="/dashboard" className="flex items-center">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Link>
+          </Button>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          Add New Expense
-        </h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+        <h1 className="text-3xl font-bold">Add New Expense</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           Record a new expense in your petty cash tracker
         </p>
       </div>
 
       {/* Balance Card */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
-              <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                Available Balance
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Your current petty cash balance
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            {balanceLoading ? (
-              <div className="animate-pulse">
-                <div className="h-8 w-24 bg-gray-200 dark:bg-gray-600 rounded"></div>
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary/10 rounded-full">
+                <Wallet className="h-5 w-5 text-primary" />
               </div>
-            ) : (
-              <>
-                <div
-                  className={`text-2xl font-bold ${getBalanceColor(balance)}`}
-                >
-                  {formatCurrency(balance)}
+              <div>
+                <h3 className="text-lg font-medium">Available Balance</h3>
+                <p className="text-sm text-muted-foreground">
+                  Your current petty cash balance
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              {balanceLoading ? (
+                <div className="animate-pulse">
+                  <div className="h-8 w-24 bg-muted rounded"></div>
                 </div>
-                {balance < 0 && (
-                  <div className="flex items-center text-sm text-red-600 dark:text-red-400 mt-1">
-                    <AlertTriangle className="h-4 w-4 mr-1" />
-                    Negative Balance
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Balance Preview */}
-        {formData.amount && !isNaN(parseFloat(formData.amount)) && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-300">
-                Balance after expense:
-              </span>
-              <span
-                className={`font-medium ${getBalanceColor(
-                  getNewBalancePreview()
-                )}`}
-              >
-                {formatCurrency(getNewBalancePreview())}
-              </span>
-            </div>
-            {getNewBalancePreview() < -500 && (
-              <div className="flex items-center text-sm text-amber-600 dark:text-amber-400 mt-2">
-                <AlertTriangle className="h-4 w-4 mr-1" />
-                This will result in a significant negative balance
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Form */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-        <form onSubmit={handleSubmit} className="space-y-6 p-6">
-          {/* Date */}
-          <div>
-            <label
-              htmlFor="date"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Date *
-            </label>
-            <input
-              type="date"
-              id="date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              required
-              className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:[color-scheme:dark]"
-            />
-          </div>
-
-          {/* Amount */}
-          <div>
-            <label
-              htmlFor="amount"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Amount ($) *
-            </label>
-            <input
-              type="number"
-              id="amount"
-              name="amount"
-              value={formData.amount}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
-              required
-              placeholder="0.00"
-              className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            />
-          </div>
-
-          {/* Category */}
-          <div>
-            <label
-              htmlFor="category"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Category *
-            </label>
-            <select
-              id="category"
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              required
-              className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            >
-              <option value="">Select a category</option>
-              {EXPENSE_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={3}
-              placeholder="Optional description of the expense"
-              className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            />
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-end space-x-3">
-            <Link
-              href="/dashboard"
-              className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Cancel
-            </Link>
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving...
-                </>
               ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Expense
+                  <div
+                    className={`text-2xl font-bold ${getBalanceColor(balance)}`}
+                  >
+                    {formatCurrency(balance)}
+                  </div>
+                  {balance < 0 && (
+                    <div className="flex items-center text-sm text-destructive mt-1">
+                      <AlertTriangle className="h-4 w-4 mr-1" />
+                      Negative Balance
+                    </div>
+                  )}
                 </>
               )}
-            </button>
+            </div>
           </div>
-        </form>
-      </div>
+
+          {/* Balance Preview */}
+          {formData.amount && !isNaN(parseFloat(formData.amount)) && (
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  Balance after expense:
+                </span>
+                <span
+                  className={`font-medium ${getBalanceColor(
+                    getNewBalancePreview()
+                  )}`}
+                >
+                  {formatCurrency(getNewBalancePreview())}
+                </span>
+              </div>
+              {getNewBalancePreview() < -500 && (
+                <div className="flex items-center text-sm text-amber-600 dark:text-amber-400 mt-2">
+                  <AlertTriangle className="h-4 w-4 mr-1" />
+                  This will result in a significant negative balance
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Form */}
+      <Card>
+        <CardContent className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Date */}
+            <div className="space-y-2">
+              <Label htmlFor="date">Date *</Label>
+              <Input
+                type="date"
+                id="date"
+                name="date"
+                value={formData.date}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            {/* Amount */}
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount ($) *</Label>
+              <Input
+                type="number"
+                id="amount"
+                name="amount"
+                value={formData.amount}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                required
+                placeholder="0.00"
+              />
+            </div>
+
+            {/* Category */}
+            <div className="space-y-2">
+              <Label htmlFor="category">Category *</Label>
+              <Select
+                name="category"
+                value={formData.category}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, category: value }))
+                }
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXPENSE_CATEGORIES.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Optional description of the expense"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-end space-x-3">
+              <Button variant="outline" asChild>
+                <Link href="/dashboard">Cancel</Link>
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Expense
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       {/* Tips */}
-      <div className="mt-6 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-          Tips for recording expenses:
-        </h3>
-        <ul className="text-sm text-blue-700 dark:text-blue-200 space-y-1">
-          <li>• Be specific in your descriptions to make tracking easier</li>
-          <li>• Choose the most appropriate category for better reporting</li>
-          <li>
-            • Record expenses as soon as possible to avoid forgetting details
-          </li>
-          <li>• Keep receipts for verification and tax purposes</li>
-        </ul>
-      </div>
+      <Card className="mt-6 bg-primary/5 border-primary/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-primary">
+            Tips for recording expenses:
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <ul className="text-sm text-muted-foreground space-y-1">
+            <li>• Be specific in your descriptions to make tracking easier</li>
+            <li>• Choose the most appropriate category for better reporting</li>
+            <li>
+              • Record expenses as soon as possible to avoid forgetting details
+            </li>
+            <li>• Keep receipts for verification and tax purposes</li>
+          </ul>
+        </CardContent>
+      </Card>
     </div>
   );
 }

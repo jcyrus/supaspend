@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function LoginPage() {
   const supabase = createClient();
@@ -125,79 +127,81 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       {/* Theme Toggle */}
       <div className="absolute top-4 right-4">
-        <button
+        <Button
+          variant="outline"
+          size="icon"
           onClick={toggleTheme}
-          className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
           aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
         >
           {theme === "light" ? (
-            <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+            <Moon className="h-4 w-4" />
           ) : (
-            <Sun className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+            <Sun className="h-4 w-4" />
           )}
-        </button>
+        </Button>
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Petty Cash Tracker
-          </h1>
-          <h2 className="text-xl text-gray-600 dark:text-gray-300">
+          <h1 className="text-3xl font-bold mb-2">Petty Cash Tracker</h1>
+          <h2 className="text-xl text-muted-foreground">
             Sign in to your account
           </h2>
         </div>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <Auth
-            supabaseClient={supabase}
-            view="sign_in"
-            showLinks={false}
-            appearance={{
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: "#3b82f6",
-                    brandAccent: "#2563eb",
-                    inputText: theme === "dark" ? "#ffffff" : "#1f2937",
-                    inputBackground: theme === "dark" ? "#374151" : "#ffffff",
-                    inputBorder: theme === "dark" ? "#4b5563" : "#d1d5db",
-                    inputPlaceholder: theme === "dark" ? "#9ca3af" : "#6b7280",
-                  },
-                  space: {
-                    inputPadding: "12px",
-                  },
-                  borderWidths: {
-                    buttonBorderWidth: "1px",
-                    inputBorderWidth: "1px",
-                  },
-                  radii: {
-                    borderRadiusButton: "6px",
-                    buttonBorderRadius: "6px",
-                    inputBorderRadius: "6px",
+        <Card>
+          <CardContent className="py-8 px-4 sm:px-10">
+            <Auth
+              supabaseClient={supabase}
+              view="sign_in"
+              showLinks={false}
+              appearance={{
+                theme: ThemeSupa,
+                variables: {
+                  default: {
+                    colors: {
+                      brand: "#3b82f6",
+                      brandAccent: "#2563eb",
+                      inputText: theme === "dark" ? "#ffffff" : "#1f2937",
+                      inputBackground: theme === "dark" ? "#374151" : "#ffffff",
+                      inputBorder: theme === "dark" ? "#4b5563" : "#d1d5db",
+                      inputPlaceholder:
+                        theme === "dark" ? "#9ca3af" : "#6b7280",
+                    },
+                    space: {
+                      inputPadding: "12px",
+                    },
+                    borderWidths: {
+                      buttonBorderWidth: "1px",
+                      inputBorderWidth: "1px",
+                    },
+                    radii: {
+                      borderRadiusButton: "6px",
+                      buttonBorderRadius: "6px",
+                      inputBorderRadius: "6px",
+                    },
                   },
                 },
-              },
-              className: {
-                container: "w-full",
-                button: "w-full px-4 py-2 text-sm font-medium rounded-md",
-                input:
-                  "w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
-              },
-            }}
-            providers={[]}
-            redirectTo="/dashboard"
-          />
+                className: {
+                  container: "w-full",
+                  button: "w-full px-4 py-2 text-sm font-medium rounded-md",
+                  input:
+                    "w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                },
+              }}
+              providers={[]}
+              redirectTo="/dashboard"
+            />
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Need an account? Contact your administrator.
-            </p>
-          </div>
-        </div>
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                Need an account? Contact your administrator.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

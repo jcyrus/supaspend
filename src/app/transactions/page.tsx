@@ -18,6 +18,17 @@ import {
 import type { Expense, FundTransactionHistory } from "@/types/database";
 import { EXPENSE_CATEGORIES } from "@/types/database";
 import { getCurrentUser, checkUserRole } from "@/lib/auth-utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ExpenseWithHistory extends Expense {
   edit_history?: EditHistoryEntry[];
@@ -302,10 +313,8 @@ export default function TransactionsPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            All Transactions
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          <h1 className="text-2xl font-semibold">All Transactions</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             View and manage all your transactions with complete edit history
           </p>
         </div>
@@ -313,140 +322,128 @@ export default function TransactionsPage() {
         <div className="flex items-center space-x-4">
           {/* View Toggle */}
           <div className="flex rounded-md shadow-sm">
-            <button
+            <Button
+              variant={viewMode === "expenses" ? "default" : "outline"}
               onClick={() => setViewMode("expenses")}
-              className={`px-4 py-2 text-sm font-medium rounded-l-md border ${
-                viewMode === "expenses"
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
-              }`}
+              className="rounded-r-none"
             >
-              <DollarSign className="h-4 w-4 inline mr-1" />
+              <DollarSign className="h-4 w-4 mr-1" />
               Expenses
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={viewMode === "funds" ? "default" : "outline"}
               onClick={() => setViewMode("funds")}
-              className={`px-4 py-2 text-sm font-medium rounded-r-md border-t border-r border-b ${
-                viewMode === "funds"
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
-              }`}
+              className="rounded-l-none border-l-0"
             >
-              <History className="h-4 w-4 inline mr-1" />
+              <History className="h-4 w-4 mr-1" />
               Fund Transfers
-            </button>
+            </Button>
           </div>
 
           {/* Admin Toggle */}
           {isAdmin && (
-            <button
+            <Button
+              variant={showAllUsers ? "default" : "outline"}
               onClick={() => setShowAllUsers(!showAllUsers)}
-              className={`px-4 py-2 text-sm font-medium rounded-md border flex items-center space-x-2 ${
-                showAllUsers
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
-              }`}
             >
               {showAllUsers ? (
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4 mr-2" />
               ) : (
-                <EyeOff className="h-4 w-4" />
+                <EyeOff className="h-4 w-4 mr-2" />
               )}
-              <span>{showAllUsers ? "All Users" : "My Transactions"}</span>
-            </button>
+              {showAllUsers ? "All Users" : "My Transactions"}
+            </Button>
           )}
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              From Date
-            </label>
-            <input
-              type="date"
-              value={filter.dateFrom}
-              onChange={(e) =>
-                setFilter({ ...filter, dateFrom: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              To Date
-            </label>
-            <input
-              type="date"
-              value={filter.dateTo}
-              onChange={(e) => setFilter({ ...filter, dateTo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {viewMode === "expenses" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Category
-              </label>
-              <select
-                value={filter.category}
+      <Card>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="dateFrom">From Date</Label>
+              <Input
+                id="dateFrom"
+                type="date"
+                value={filter.dateFrom}
                 onChange={(e) =>
-                  setFilter({ ...filter, category: e.target.value })
+                  setFilter({ ...filter, dateFrom: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">All Categories</option>
-                {EXPENSE_CATEGORIES.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Min Amount
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={filter.minAmount}
-              onChange={(e) =>
-                setFilter({ ...filter, minAmount: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0.00"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="dateTo">To Date</Label>
+              <Input
+                id="dateTo"
+                type="date"
+                value={filter.dateTo}
+                onChange={(e) =>
+                  setFilter({ ...filter, dateTo: e.target.value })
+                }
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Max Amount
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={filter.maxAmount}
-              onChange={(e) =>
-                setFilter({ ...filter, maxAmount: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0.00"
-            />
+            {viewMode === "expenses" && (
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select
+                  value={filter.category}
+                  onValueChange={(value) =>
+                    setFilter({ ...filter, category: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {EXPENSE_CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="minAmount">Min Amount</Label>
+              <Input
+                id="minAmount"
+                type="number"
+                step="0.01"
+                value={filter.minAmount}
+                onChange={(e) =>
+                  setFilter({ ...filter, minAmount: e.target.value })
+                }
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="maxAmount">Max Amount</Label>
+              <Input
+                id="maxAmount"
+                type="number"
+                step="0.01"
+                value={filter.maxAmount}
+                onChange={(e) =>
+                  setFilter({ ...filter, maxAmount: e.target.value })
+                }
+                placeholder="0.00"
+              />
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Transactions Table */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
             <Filter className="h-5 w-5 mr-2" />
             {viewMode === "expenses"
               ? "Expense Transactions"
@@ -456,18 +453,16 @@ export default function TransactionsPage() {
               ? expenses.length
               : fundTransactions.length}
             )
-          </h2>
-        </div>
+          </CardTitle>
+        </CardHeader>
 
-        <div className="overflow-hidden">
+        <CardContent className="p-0">
           {viewMode === "expenses" ? (
             expenses.length === 0 ? (
               <div className="text-center py-12">
-                <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-                  No expenses found
-                </h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <DollarSign className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-2 text-sm font-medium">No expenses found</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
                   No expenses match your current filters.
                 </p>
               </div>
@@ -737,8 +732,8 @@ export default function TransactionsPage() {
               </table>
             </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Edit Reason Modal */}
       {editingId && (

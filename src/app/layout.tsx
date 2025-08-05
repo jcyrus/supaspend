@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { SidebarProvider } from "@/contexts/SidebarContext";
 import AuthGuard from "@/components/AuthGuard";
 
 export const metadata: Metadata = {
@@ -19,11 +18,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="h-full antialiased">
         <ThemeProvider>
-          <SidebarProvider>
-            <AuthGuard>
-              <DashboardLayout>{children}</DashboardLayout>
-            </AuthGuard>
-          </SidebarProvider>
+          <AuthGuard>
+            <DashboardLayout>{children}</DashboardLayout>
+          </AuthGuard>
         </ThemeProvider>
       </body>
     </html>

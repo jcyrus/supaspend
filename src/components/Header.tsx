@@ -3,29 +3,17 @@
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import ProfileDropdown from "./ProfileDropdown";
 
-interface HeaderProps {
-  title?: string;
-  showTitle?: boolean;
-  variant?: "dashboard" | "admin";
-}
-
-export default function Header({
-  title,
-  showTitle = false,
-  variant = "dashboard",
-}: HeaderProps) {
+export default function Header() {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // Determine title based on variant if not provided
-  const displayTitle =
-    title || (variant === "admin" ? "Admin Dashboard" : "Dashboard");
 
   // Toggle function for next-themes
   const toggleTheme = () => {
@@ -35,19 +23,16 @@ export default function Header({
   // Don't render theme toggle until mounted (prevents hydration mismatch)
   if (!mounted) {
     return (
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 lg:px-8 py-3">
+      <div className="bg-background border-b px-4 lg:px-8 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {(showTitle || variant === "admin") && (
-            <div className="flex items-center space-x-4">
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {displayTitle}
-              </h1>
-            </div>
-          )}
+          <div className="flex items-center space-x-4">
+            {/* Sidebar toggle placeholder */}
+            <div className="h-7 w-7"></div>
+          </div>
 
-          <div className="flex items-center space-x-4 ml-auto">
+          <div className="flex items-center space-x-4">
             {/* Placeholder for theme toggle */}
-            <div className="w-9 h-9"></div>
+            <div className="h-9 w-9"></div>
             {/* Placeholder for profile dropdown */}
             <div className="w-32 h-10"></div>
           </div>
@@ -57,31 +42,29 @@ export default function Header({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 lg:px-8 py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {(showTitle || variant === "admin") && (
-          <div className="flex items-center space-x-4">
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {displayTitle}
-            </h1>
-          </div>
-        )}
+    <div className="bg-background border-b px-4 lg:px-8 py-3">
+      <div className="w-full flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          {/* Sidebar Toggle */}
+          <SidebarTrigger />
+        </div>
 
-        <div className="flex items-center space-x-4 ml-auto">
+        <div className="flex items-center space-x-4">
           {/* Theme Toggle */}
-          <button
+          <Button
+            variant="outline"
+            size="icon"
             onClick={toggleTheme}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
             aria-label={`Switch to ${
               theme === "light" ? "dark" : "light"
             } mode`}
           >
             {theme === "light" ? (
-              <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              <Moon className="h-4 w-4" />
             ) : (
-              <Sun className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              <Sun className="h-4 w-4" />
             )}
-          </button>
+          </Button>
 
           {/* Profile Dropdown */}
           <ProfileDropdown />

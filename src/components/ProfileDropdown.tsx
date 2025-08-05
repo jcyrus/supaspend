@@ -2,18 +2,26 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
-import { User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { User, Settings, LogOut } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { getCurrentUser } from "@/lib/auth-utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function ProfileDropdown() {
   const supabase = createClient();
   const router = useRouter();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -27,22 +35,6 @@ export default function ProfileDropdown() {
     getUser();
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/auth/login");
@@ -53,86 +45,66 @@ export default function ProfileDropdown() {
   }
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-      >
-        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-sm font-medium text-blue-600 dark:text-blue-300">
-            {user?.email?.charAt(0).toUpperCase()}
-          </span>
-        </div>
-        <div className="hidden sm:block text-left">
-          <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-32">
-            {user?.email}
-          </p>
-          {userRole && ["admin", "superadmin"].includes(userRole) && (
-            <p className="text-xs text-blue-600 dark:text-blue-300 capitalize">
-              {userRole}
-            </p>
-          )}
-        </div>
-        <ChevronDown
-          className={`h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
-        />
-      </button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-primary/10 text-primary">
+              {user?.email?.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
 
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
-          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">
+              {user?.email?.split("@")[0]}
+            </p>
+            <p className="text-xs leading-none text-muted-foreground">
               {user?.email}
             </p>
             {userRole && ["admin", "superadmin"].includes(userRole) && (
-              <p className="text-xs text-blue-600 dark:text-blue-300 capitalize">
+              <p className="text-xs text-primary capitalize font-medium">
                 {userRole}
               </p>
             )}
           </div>
+        </DropdownMenuLabel>
 
-          <div className="py-1">
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                // TODO: Navigate to profile page when implemented
-                console.log("Navigate to profile");
-              }}
-              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-            >
-              <User className="h-4 w-4 mr-3" />
-              Profile
-            </button>
+        <DropdownMenuSeparator />
 
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                // TODO: Navigate to settings page when implemented
-                console.log("Navigate to settings");
-              }}
-              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-            >
-              <Settings className="h-4 w-4 mr-3" />
-              Settings
-            </button>
+        <DropdownMenuItem
+          onClick={() => {
+            // TODO: Navigate to profile page when implemented
+            console.log("Navigate to profile");
+          }}
+        >
+          <User className="mr-2 h-4 w-4" />
+          Profile
+        </DropdownMenuItem>
 
-            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+        <DropdownMenuItem
+          onClick={() => {
+            // TODO: Navigate to settings page when implemented
+            console.log("Navigate to settings");
+          }}
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          Settings
+        </DropdownMenuItem>
 
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                handleSignOut();
-              }}
-              className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
-            >
-              <LogOut className="h-4 w-4 mr-3" />
-              Sign Out
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          onClick={handleSignOut}
+          className="text-destructive focus:text-destructive"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
