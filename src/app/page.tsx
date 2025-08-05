@@ -20,20 +20,21 @@ export default function Home() {
           router.push("/auth/login");
         }, 5000); // 5 second timeout
 
+        // Use getUser() for secure authentication check
         const {
-          data: { session },
+          data: { user },
           error,
-        } = await supabase.auth.getSession();
+        } = await supabase.auth.getUser();
 
         clearTimeout(timeoutId);
 
         if (error) {
-          console.error("Session check error:", error);
+          console.error("Auth check error:", error);
           router.push("/auth/login");
           return;
         }
 
-        if (session?.user) {
+        if (user) {
           // User is authenticated, redirect to dashboard
           router.push("/dashboard");
         } else {

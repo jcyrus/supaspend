@@ -20,11 +20,19 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const checkAuth = async () => {
       try {
+        // Use getUser() for secure server-side validation
         const {
-          data: { session },
-        } = await supabase.auth.getSession();
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
 
-        if (session?.user) {
+        if (error) {
+          console.error("Auth error:", error);
+          router.replace("/auth/login");
+          return;
+        }
+
+        if (user) {
           setIsAuthenticated(true);
         } else {
           router.replace("/auth/login");

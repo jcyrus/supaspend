@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { NextRequest } from "next/server";
+import { withAuth, errorResponse, successResponse } from "@/lib/api-middleware";
 
 interface UpdateExpenseData {
   amount: number;
@@ -11,43 +11,36 @@ interface UpdateExpenseData {
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  // Use middleware for authentication
+  const authResult = await withAuth(req);
+
+  if (!authResult.success) {
+    return authResult.response!;
+  }
+
   try {
     const { amount, category, description, date, reason }: UpdateExpenseData =
       await req.json();
-    const expenseId = params.id;
-
-    // Use server-side auth
-    const { supabase } = createClient(req);
-
-    // Check if user is authenticated
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError || !session?.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    const resolvedParams = await params;
+    const expenseId = resolvedParams.id;
+    const { supabase, user } = authResult;
 
     // First, get the current expense data to store in history
-    const { data: currentExpense, error: fetchError } = await supabase
+    const { data: currentExpense, error: fetchError } = await supabase!
       .from("expenses")
       .select("*")
       .eq("id", expenseId)
-      .eq("user_id", session.user.id) // Ensure user can only edit their own expenses
+      .eq("user_id", user!.id) // Ensure user can only edit their own expenses
       .single();
 
     if (fetchError || !currentExpense) {
-      return NextResponse.json(
-        { error: "Expense not found or access denied" },
-        { status: 404 }
-      );
+      return errorResponse("Expense not found or access denied", 404);
     }
 
     // Update the expense
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabase!
       .from("expenses")
       .update({
         amount,
@@ -57,22 +50,19 @@ export async function PUT(
         updated_at: new Date().toISOString(),
       })
       .eq("id", expenseId)
-      .eq("user_id", session.user.id);
+      .eq("user_id", user!.id);
 
     if (updateError) {
       console.error("Error updating expense:", updateError);
-      return NextResponse.json(
-        { error: "Failed to update expense" },
-        { status: 500 }
-      );
+      return errorResponse("Failed to update expense", 500);
     }
 
     // Create edit history record
-    const { error: historyError } = await supabase
+    const { error: historyError } = await supabase!
       .from("expense_edit_history")
       .insert({
         expense_id: expenseId,
-        edited_by: session.user.id,
+        edited_by: user!.id,
         previous_data: {
           amount: currentExpense.amount,
           category: currentExpense.category,
@@ -93,57 +83,44 @@ export async function PUT(
       // Don't fail the request if history creation fails, just log it
     }
 
-    return NextResponse.json({ message: "Expense updated successfully" });
+    return successResponse({ message: "Expense updated successfully" });
   } catch (error) {
     console.error("Error in expense update API:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
   }
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  // Use middleware for authentication
+  const authResult = await withAuth(req);
+
+  if (!authResult.success) {
+    return authResult.response!;
+  }
+
   try {
-    const expenseId = params.id;
-
-    // Use server-side auth
-    const { supabase } = createClient(req);
-
-    // Check if user is authenticated
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError || !session?.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    const resolvedParams = await params;
+    const expenseId = resolvedParams.id;
+    const { supabase, user } = authResult;
 
     // Delete the expense (this will also delete related edit history due to CASCADE)
-    const { error } = await supabase
+    const { error } = await supabase!
       .from("expenses")
       .delete()
       .eq("id", expenseId)
-      .eq("user_id", session.user.id); // Ensure user can only delete their own expenses
+      .eq("user_id", user!.id); // Ensure user can only delete their own expenses
 
     if (error) {
       console.error("Error deleting expense:", error);
-      return NextResponse.json(
-        { error: "Failed to delete expense" },
-        { status: 500 }
-      );
+      return errorResponse("Failed to delete expense", 500);
     }
 
-    return NextResponse.json({ message: "Expense deleted successfully" });
+    return successResponse({ message: "Expense deleted successfully" });
   } catch (error) {
     console.error("Error in expense delete API:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
   }
 }

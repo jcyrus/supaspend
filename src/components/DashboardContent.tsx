@@ -12,7 +12,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
-import type { Expense, FundTransactionHistory } from "@/types/database";
+import type { Expense } from "@/types/database";
 import { EXPENSE_CATEGORIES } from "@/types/database";
 import { getCurrentUser } from "@/lib/auth-utils";
 
@@ -24,9 +24,6 @@ export default function DashboardContent() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [balance, setBalance] = useState<number>(0);
   const [balanceLoading, setBalanceLoading] = useState(true);
-  const [recentTransactions, setRecentTransactions] = useState<
-    FundTransactionHistory[]
-  >([]);
 
   const fetchExpenses = useCallback(async () => {
     try {
@@ -107,18 +104,15 @@ export default function DashboardContent() {
       setBalanceLoading(true);
       const response = await fetch("/api/balance");
       if (response.ok) {
-        const { balance: userBalance, transactions } = await response.json();
+        const { balance: userBalance } = await response.json();
         setBalance(userBalance);
-        setRecentTransactions(transactions?.slice(0, 5) || []);
       } else {
         console.error("Failed to fetch balance");
         setBalance(0);
-        setRecentTransactions([]);
       }
     } catch (error) {
       console.error("Error fetching balance:", error);
       setBalance(0);
-      setRecentTransactions([]);
     } finally {
       setBalanceLoading(false);
     }

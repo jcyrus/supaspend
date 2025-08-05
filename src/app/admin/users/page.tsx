@@ -65,30 +65,59 @@ export default function AdminUsersPage() {
       // Fetch users with balances
       const response = await fetch("/api/admin/users-with-balances");
       if (response.ok) {
-        const { users: usersWithBalanceData } = await response.json();
-        setUsersWithBalances(usersWithBalanceData);
+        const responseData = await response.json();
 
-        // Convert to regular users format for compatibility with existing code
-        const regularUsers = usersWithBalanceData.map(
-          (user: UserWithBalance) => ({
-            id: user.user_id,
-            username: user.username,
-            role: user.role,
-            created_by: null, // This is handled by the backend function
-            created_at: user.created_at,
-            updated_at: user.created_at, // Not available in the new function
-          })
-        );
-        setUsers(regularUsers);
+        const { data, success } = responseData;
+        const { users: usersWithBalanceData } = data || {};
 
-        // Set up emails from the new data
-        const emails: { [key: string]: string } = {};
-        usersWithBalanceData.forEach((user: UserWithBalance) => {
-          emails[user.user_id] = user.email;
-        });
+        // Check if the response indicates success and has valid data
+        if (success === false) {
+          console.error(
+            "API returned error:",
+            responseData.error || "Unknown error"
+          );
+          throw new Error(responseData.error || "API request failed");
+        }
+
+        // Ensure usersWithBalanceData is an array before processing
+        if (Array.isArray(usersWithBalanceData)) {
+          setUsersWithBalances(usersWithBalanceData);
+
+          // Convert to regular users format for compatibility with existing code
+          const regularUsers = usersWithBalanceData.map(
+            (user: UserWithBalance) => ({
+              id: user.user_id,
+              username: user.username,
+              role: user.role,
+              created_by: null, // This is handled by the backend function
+              created_at: user.created_at,
+              updated_at: user.created_at, // Not available in the new function
+            })
+          );
+          setUsers(regularUsers);
+        } else {
+          console.error("Invalid users data format:", usersWithBalanceData);
+          // Fall back to old method
+          throw new Error("Invalid response format");
+        }
       } else {
+        console.error("API request failed with status:", response.status);
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(`API request failed: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      console.log("Falling back to old method...");
+
+      try {
         // Fallback to old method if new endpoint fails
         const adminUsers = await getAdminUsers();
+
+        if (!Array.isArray(adminUsers)) {
+          throw new Error("getAdminUsers did not return an array");
+        }
+
         setUsers(adminUsers);
 
         // For fallback, we don't have balance information, so set empty balances
@@ -123,10 +152,12 @@ export default function AdminUsersPage() {
             console.error("Failed to fetch user emails");
           }
         }
+      } catch (fallbackError) {
+        console.error("Fallback method also failed:", fallbackError);
+        setError("Failed to load users. Please refresh the page.");
+        setUsers([]);
+        setUsersWithBalances([]);
       }
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      setError("Failed to load users");
     } finally {
       setLoading(false);
     }

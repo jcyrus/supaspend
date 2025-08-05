@@ -44,13 +44,13 @@ export async function withAuth(
   try {
     const { supabase } = createServerClient(request);
 
-    // Check if user is authenticated
+    // Check if user is authenticated - use getUser() for server-side validation
     const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session?.user) {
+    if (userError || !user) {
       return {
         success: false,
         response: NextResponse.json(
@@ -64,7 +64,7 @@ export async function withAuth(
     const { data: userProfile, error: userProfileError } = await supabase
       .from("users")
       .select("*")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .single();
 
     if (userProfileError || !userProfile) {
@@ -106,7 +106,7 @@ export async function withAuth(
 
     return {
       success: true,
-      user: session.user,
+      user,
       userProfile,
       supabase,
     };

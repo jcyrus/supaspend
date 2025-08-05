@@ -1,89 +1,50 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { createClient as createServerClient } from "@/lib/supabase/server";
-
-// Create admin client with service role key
-const createAdminClient = () => {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-};
+import { NextRequest } from "next/server";
+import {
+  withAuth,
+  createAdminClient,
+  errorResponse,
+  successResponse,
+} from "@/lib/api-middleware";
 
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  // Use middleware for authentication and authorization
+  const authResult = await withAuth(request, {
+    requireRole: ["admin", "superadmin"],
+  });
+
+  if (!authResult.success) {
+    return authResult.response!;
+  }
+
   try {
     const params = await context.params;
+    const { id } = params;
 
-    // Use server-side auth
-    const { supabase } = createServerClient(request);
-
-    // Check if user is authenticated
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError || !session?.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    // Get user profile to check role
-    const { data: userProfile, error: userProfileError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", session.user.id)
-      .single();
-
-    if (userProfileError || !userProfile) {
-      return NextResponse.json(
-        { error: "User profile not found" },
-        { status: 401 }
+    // Check if the current user has superadmin role (only superadmin can delete users)
+    if (authResult.userProfile?.role !== "superadmin") {
+      return errorResponse(
+        "Access denied. Superadmin role required to delete users.",
+        403
       );
     }
 
-    // Check if user has admin or superadmin role
-    if (!["admin", "superadmin"].includes(userProfile.role)) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
-
-    const userId = params.id;
-    if (!userId) {
-      return NextResponse.json(
-        { error: "User ID is required" },
-        { status: 400 }
-      );
-    }
-
+    // Create admin client for user deletion
     const adminSupabase = createAdminClient();
 
-    // Delete the user
-    const { error } = await adminSupabase.auth.admin.deleteUser(userId);
+    // Delete the user from auth
+    const { error } = await adminSupabase.auth.admin.deleteUser(id);
 
     if (error) {
       console.error("Error deleting user:", error);
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return errorResponse(error.message, 400);
     }
 
-    return NextResponse.json({
-      message: "User deleted successfully",
-    });
+    return successResponse({ message: "User deleted successfully" });
   } catch (error) {
-    console.error("Error deleting user:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Error in DELETE /api/admin/users/[id]:", error);
+    return errorResponse("Internal server error", 500);
   }
 }

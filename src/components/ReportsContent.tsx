@@ -67,10 +67,10 @@ export default function ReportsContent() {
   const fetchPersonalExpenses = useCallback(async () => {
     try {
       const {
-        data: { session },
-      } = await supabase.auth.getSession();
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (!session?.user) return;
+      if (!user) return;
 
       const monthsBack =
         selectedPeriod === "3months"
@@ -83,7 +83,7 @@ export default function ReportsContent() {
       const { data, error } = await supabase
         .from("expenses")
         .select("*")
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .gte("date", format(startDate, "yyyy-MM-dd"))
         .order("date", { ascending: true });
 
@@ -153,15 +153,28 @@ export default function ReportsContent() {
     try {
       const response = await fetch("/api/admin/users-with-balances");
       if (response.ok) {
-        const { users } = await response.json();
-        const balances: { [key: string]: number } = {};
-        users.forEach((user: { user_id: string; balance: number }) => {
-          balances[user.user_id] = user.balance;
-        });
-        setUserBalances(balances);
+        const responseData = await response.json();
+        const { data } = responseData;
+        const { users } = data || {};
+
+        // Ensure users is an array before processing
+        if (Array.isArray(users)) {
+          const balances: { [key: string]: number } = {};
+          users.forEach((user: { user_id: string; balance: number }) => {
+            balances[user.user_id] = user.balance;
+          });
+          setUserBalances(balances);
+        } else {
+          console.error("Invalid users data format:", users);
+          setUserBalances({});
+        }
+      } else {
+        console.error("Failed to fetch user balances");
+        setUserBalances({});
       }
     } catch (error) {
       console.error("Error fetching user balances:", error);
+      setUserBalances({});
     }
   }, []);
 
@@ -217,7 +230,7 @@ export default function ReportsContent() {
   const currentExpenses: Expense[] =
     viewMode === "personal"
       ? expenses
-      : adminUserExpenses.map((e) => ({
+      : (adminUserExpenses || []).map((e) => ({
           id: e.expense_id,
           user_id: e.user_id,
           date: e.date,
@@ -320,13 +333,13 @@ export default function ReportsContent() {
         ...(viewMode === "admin" ? ["User", "Email"] : []),
       ],
       ...(viewMode === "personal"
-        ? currentExpenses.map((expense) => [
+        ? (currentExpenses || []).map((expense) => [
             expense.date,
             expense.category,
             expense.amount.toString(),
             expense.description || "",
           ])
-        : adminUserExpenses.map((expense) => [
+        : (adminUserExpenses || []).map((expense) => [
             expense.date,
             expense.category,
             expense.amount.toString(),
@@ -545,7 +558,8 @@ export default function ReportsContent() {
               </p>
               <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
                 {viewMode === "admin"
-                  ? new Set(adminUserExpenses.map((e) => e.user_id)).size
+                  ? new Set((adminUserExpenses || []).map((e) => e.user_id))
+                      .size
                   : currentExpenses.length}
               </p>
             </div>

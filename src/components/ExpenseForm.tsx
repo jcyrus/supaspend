@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { Save, ArrowLeft, Wallet, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { EXPENSE_CATEGORIES } from "@/types/database";
-import type { ExpenseInsert, FundTransactionHistory } from "@/types/database";
+import type { ExpenseInsert } from "@/types/database";
 
 export default function ExpenseForm() {
   const supabase = createClient();
@@ -28,10 +28,10 @@ export default function ExpenseForm() {
 
     try {
       const {
-        data: { session },
-      } = await supabase.auth.getSession();
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (!session?.user) {
+      if (!user) {
         throw new Error("Not authenticated");
       }
 
@@ -56,7 +56,7 @@ export default function ExpenseForm() {
       }
 
       const expenseData: ExpenseInsert = {
-        user_id: session.user.id,
+        user_id: user.id,
         date: formData.date,
         amount: expenseAmount,
         category: formData.category,

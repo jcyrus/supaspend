@@ -31,7 +31,6 @@ export default function AdminUsersPage() {
   const [usersWithBalances, setUsersWithBalances] = useState<UserWithBalance[]>(
     []
   );
-  const [userEmails, setUserEmails] = useState<{ [key: string]: string }>({});
   const [error, setError] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
@@ -66,28 +65,31 @@ export default function AdminUsersPage() {
       // Fetch users with balances
       const response = await fetch("/api/admin/users-with-balances");
       if (response.ok) {
-        const { users: usersWithBalanceData } = await response.json();
-        setUsersWithBalances(usersWithBalanceData);
+        const responseData = await response.json();
+        const { data } = responseData;
+        const { users: usersWithBalanceData } = data || {};
 
-        // Convert to regular users format for compatibility with existing code
-        const regularUsers = usersWithBalanceData.map(
-          (user: UserWithBalance) => ({
-            id: user.user_id,
-            username: user.username,
-            role: user.role,
-            created_by: null, // This is handled by the backend function
-            created_at: user.created_at,
-            updated_at: user.created_at, // Not available in the new function
-          })
-        );
-        setUsers(regularUsers);
+        // Ensure usersWithBalanceData is an array before processing
+        if (Array.isArray(usersWithBalanceData)) {
+          setUsersWithBalances(usersWithBalanceData);
 
-        // Set up emails from the new data
-        const emails: { [key: string]: string } = {};
-        usersWithBalanceData.forEach((user: UserWithBalance) => {
-          emails[user.user_id] = user.email;
-        });
-        setUserEmails(emails);
+          // Convert to regular users format for compatibility with existing code
+          const regularUsers = usersWithBalanceData.map(
+            (user: UserWithBalance) => ({
+              id: user.user_id,
+              username: user.username,
+              role: user.role,
+              created_by: null, // This is handled by the backend function
+              created_at: user.created_at,
+              updated_at: user.created_at, // Not available in the new function
+            })
+          );
+          setUsers(regularUsers);
+        } else {
+          console.error("Invalid users data format:", usersWithBalanceData);
+          // Fall back to old method
+          throw new Error("Invalid response format");
+        }
       } else {
         // Fallback to old method if new endpoint fails
         const adminUsers = await getAdminUsers();
@@ -101,14 +103,11 @@ export default function AdminUsersPage() {
           );
 
           if (emailResponse.ok) {
-            const { emails } = await emailResponse.json();
-            setUserEmails(emails);
+            // Email data is available in the response but not used in the UI
+            // since user email is now available directly in usersWithBalances
           } else {
             console.error("Failed to fetch user emails");
-            setUserEmails({});
           }
-        } else {
-          setUserEmails({});
         }
       }
     } catch (error) {
@@ -774,7 +773,7 @@ export default function AdminUsersPage() {
                       No transactions found
                     </h3>
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                      This user hasn't had any fund transactions yet.
+                      This user hasn&apos;t had any fund transactions yet.
                     </p>
                   </div>
                 ) : (

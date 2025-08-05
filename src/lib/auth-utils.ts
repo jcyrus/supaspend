@@ -10,24 +10,25 @@ export async function getCurrentUser(): Promise<UserWithProfile | null> {
   const supabase = createClient();
 
   try {
+    // Use getUser() for secure server-side validation
     const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session?.user) {
+    if (userError || !user) {
       return null;
     }
 
     const { data: userProfile, error: profileError } = await supabase
       .from("users")
       .select("*")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .single();
 
     if (profileError) {
       console.error("Error fetching user profile:", profileError);
-      console.error("User ID:", session.user.id);
+      console.error("User ID:", user.id);
       console.error("Error details:", {
         code: profileError.code,
         message: profileError.message,
@@ -39,19 +40,19 @@ export async function getCurrentUser(): Promise<UserWithProfile | null> {
       if (profileError.code === "PGRST116") {
         // No rows returned
         console.log("User profile not found, creating one...");
-        return await createUserProfile(session.user);
+        return await createUserProfile(user);
       }
 
       return null;
     }
 
     if (!userProfile) {
-      console.warn("No user profile found for user ID:", session.user.id);
-      return await createUserProfile(session.user);
+      console.warn("No user profile found for user ID:", user.id);
+      return await createUserProfile(user);
     }
 
     return {
-      ...session.user,
+      ...user,
       profile: userProfile,
     };
   } catch (error) {

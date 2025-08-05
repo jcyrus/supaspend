@@ -1,110 +1,86 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient as createServerClient } from "@/lib/supabase/server";
+import { NextRequest } from "next/server";
+import {
+  withAuth,
+  validateRequiredFields,
+  errorResponse,
+  successResponse,
+} from "@/lib/api-middleware";
 
 export async function POST(request: NextRequest) {
+  // Use middleware for authentication and authorization
+  const authResult = await withAuth(request, {
+    requireRole: ["admin", "superadmin"],
+  });
+
+  if (!authResult.success) {
+    return authResult.response!;
+  }
+
+  const { user, userProfile, supabase } = authResult;
+
   try {
-    // Use server-side auth
-    const { supabase } = createServerClient(request);
+    const body = await request.json();
+    const { recipient_id, amount, description } = body;
 
-    // Check if user is authenticated
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError || !session?.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    // Get user profile to check role
-    const { data: userProfile, error: userProfileError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", session.user.id)
-      .single();
-
-    if (userProfileError || !userProfile) {
-      return NextResponse.json(
-        { error: "User profile not found" },
-        { status: 401 }
-      );
-    }
-
-    // Check if user has admin or superadmin role
-    if (!["admin", "superadmin"].includes(userProfile.role)) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
-
-    const { userId, amount, description } = await request.json();
-
-    if (!userId || !amount || amount <= 0) {
-      return NextResponse.json(
-        { error: "Missing or invalid required fields" },
-        { status: 400 }
+    // Validate required fields
+    const validation = validateRequiredFields(body, [
+      "recipient_id",
+      "amount",
+      "description",
+    ]);
+    if (!validation.isValid) {
+      return errorResponse(
+        `Missing required fields: ${validation.missingFields?.join(", ")}`
       );
     }
 
     // Call the database function to add funds
-    const { data, error } = await supabase.rpc("add_user_funds", {
-      target_user_id: userId,
+    const { data, error } = await supabase!.rpc("add_user_funds", {
+      target_user_id: recipient_id,
       amount: parseFloat(amount),
-      admin_user_id: session.user.id,
-      description: description || `Fund deposit by ${userProfile.username}`,
+      admin_user_id: user?.id,
+      description: description || `Fund deposit by ${userProfile?.username}`,
     });
 
     if (error) {
       console.error("Error adding funds:", error);
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return errorResponse(error.message);
     }
 
     // Check if the function returned an error message
     if (data && data.startsWith("Error:")) {
-      return NextResponse.json({ error: data }, { status: 400 });
+      return errorResponse(data);
     }
 
-    return NextResponse.json({
+    return successResponse({
       message: data || "Funds added successfully",
-      success: true,
     });
   } catch (error) {
     console.error("Error in fund deposit:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
   }
 }
 
 export async function GET(request: NextRequest) {
+  // Use middleware for authentication
+  const authResult = await withAuth(request);
+
+  if (!authResult.success) {
+    return authResult.response!;
+  }
+
+  const { supabase } = authResult;
+
   try {
-    // Use server-side auth
-    const { supabase } = createServerClient(request);
-
-    // Check if user is authenticated
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError || !session?.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
     const url = new URL(request.url);
     const userId = url.searchParams.get("userId");
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "User ID is required" },
-        { status: 400 }
-      );
+      return errorResponse("User ID is required");
     }
 
     // Get user balance
-    const { data: balance, error: balanceError } = await supabase.rpc(
+    const { data: balance, error: balanceError } = await supabase!.rpc(
       "get_user_balance",
       {
         target_user_id: userId,
@@ -113,38 +89,27 @@ export async function GET(request: NextRequest) {
 
     if (balanceError) {
       console.error("Error getting balance:", balanceError);
-      return NextResponse.json(
-        { error: balanceError.message },
-        { status: 400 }
-      );
+      return errorResponse(balanceError.message);
     }
 
     // Get transaction history
-    const { data: transactions, error: transactionsError } = await supabase.rpc(
-      "get_user_fund_transactions",
-      {
+    const { data: transactions, error: transactionsError } =
+      await supabase!.rpc("get_user_fund_transactions", {
         target_user_id: userId,
         limit_count: 20,
-      }
-    );
+      });
 
     if (transactionsError) {
       console.error("Error getting transactions:", transactionsError);
-      return NextResponse.json(
-        { error: transactionsError.message },
-        { status: 400 }
-      );
+      return errorResponse(transactionsError.message);
     }
 
-    return NextResponse.json({
+    return successResponse({
       balance: balance || 0,
       transactions: transactions || [],
     });
   } catch (error) {
     console.error("Error getting fund information:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
   }
 }
