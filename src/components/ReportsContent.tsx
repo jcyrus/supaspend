@@ -25,6 +25,8 @@ import {
   Wallet,
   AlertTriangle,
 } from "lucide-react";
+import { useBalance } from "@/hooks/useBalance";
+import { formatCurrency, getBalanceColor } from "@/lib/utils/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,8 +66,7 @@ export default function ReportsContent() {
   const [selectedPeriod, setSelectedPeriod] = useState<
     "3months" | "6months" | "1year"
   >("3months");
-  const [balance, setBalance] = useState<number>(0);
-  const [balanceLoading, setBalanceLoading] = useState(true);
+  const { balance, loading: balanceLoading } = useBalance();
   const [userBalances, setUserBalances] = useState<{ [key: string]: number }>(
     {}
   );
@@ -128,38 +129,6 @@ export default function ReportsContent() {
     }
   }, [selectedPeriod]);
 
-  const fetchBalance = useCallback(async () => {
-    try {
-      setBalanceLoading(true);
-      const response = await fetch("/api/balance");
-      if (response.ok) {
-        const { balance: userBalance } = await response.json();
-        setBalance(userBalance);
-      } else {
-        console.error("Failed to fetch balance");
-        setBalance(0);
-      }
-    } catch (error) {
-      console.error("Error fetching balance:", error);
-      setBalance(0);
-    } finally {
-      setBalanceLoading(false);
-    }
-  }, []);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
-  const getBalanceColor = (balance: number) => {
-    if (balance < 0) return "text-red-600 dark:text-red-400";
-    if (balance === 0) return "text-gray-600 dark:text-gray-400";
-    return "text-green-600 dark:text-green-400";
-  };
-
   const fetchUserBalances = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/users-with-balances");
@@ -197,7 +166,7 @@ export default function ReportsContent() {
 
     // Fetch balance for personal view or user balances for admin view
     if (viewMode === "personal") {
-      await Promise.all([fetchPersonalExpenses(), fetchBalance()]);
+      await fetchPersonalExpenses();
     } else if (viewMode === "admin") {
       await Promise.all([fetchAdminExpenses(), fetchUserBalances()]);
     }
@@ -208,7 +177,6 @@ export default function ReportsContent() {
     checkAdminStatus,
     fetchPersonalExpenses,
     fetchAdminExpenses,
-    fetchBalance,
     fetchUserBalances,
   ]);
 
@@ -220,9 +188,7 @@ export default function ReportsContent() {
   useEffect(() => {
     setLoading(true);
     if (viewMode === "personal") {
-      Promise.all([fetchPersonalExpenses(), fetchBalance()]).finally(() =>
-        setLoading(false)
-      );
+      fetchPersonalExpenses().finally(() => setLoading(false));
     } else if (viewMode === "admin") {
       Promise.all([fetchAdminExpenses(), fetchUserBalances()]).finally(() =>
         setLoading(false)
@@ -233,7 +199,6 @@ export default function ReportsContent() {
     viewMode,
     fetchPersonalExpenses,
     fetchAdminExpenses,
-    fetchBalance,
     fetchUserBalances,
   ]);
 
@@ -430,7 +395,7 @@ export default function ReportsContent() {
           )}
           <Button
             onClick={downloadReport}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-green-500 hover:bg-green-600 cursor-pointer"
           >
             <Download className="h-4 w-4 mr-2" />
             Export CSV
@@ -440,7 +405,7 @@ export default function ReportsContent() {
 
       {/* Filters */}
       <Card className="mb-6">
-        <CardContent className="p-6">
+        <CardContent className="px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Calendar className="h-5 w-5 text-muted-foreground" />
@@ -473,7 +438,7 @@ export default function ReportsContent() {
         {/* Balance Card - Personal View */}
         {viewMode === "personal" && (
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="px-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <Wallet className="h-8 w-8 text-indigo-600" />
@@ -510,7 +475,7 @@ export default function ReportsContent() {
         {/* Total Balance Card - Admin View */}
         {viewMode === "admin" && (
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="px-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <Wallet className="h-8 w-8 text-indigo-600" />
@@ -541,7 +506,7 @@ export default function ReportsContent() {
         )}
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="px-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <TrendingUp className="h-8 w-8 text-blue-600" />
@@ -559,7 +524,7 @@ export default function ReportsContent() {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="px-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <Calendar className="h-8 w-8 text-green-600" />
@@ -580,7 +545,7 @@ export default function ReportsContent() {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="px-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <TrendingUp className="h-8 w-8 text-purple-600" />

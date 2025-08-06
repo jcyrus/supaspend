@@ -359,7 +359,7 @@ export default function TransactionsPage() {
 
       {/* Filters */}
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="px-6">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dateFrom">From Date</Label>

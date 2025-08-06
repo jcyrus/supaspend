@@ -35,7 +35,6 @@ export default function AppSidebar() {
 
   const baseNavItems = [
     { href: "/dashboard", label: "Dashboard", icon: Home },
-    { href: "/expenses/new", label: "Add Expense", icon: Plus },
     { href: "/transactions", label: "Transactions", icon: History },
     { href: "/reports", label: "Reports", icon: BarChart3 },
   ];
@@ -70,6 +69,17 @@ export default function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
+            <div className="mb-4">
+              <Link href="/expenses/new">
+                <SidebarMenuButton
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover:text-black justify-center"
+                  size="lg"
+                >
+                  <Plus className="size-4" />
+                  <span>Add Expense</span>
+                </SidebarMenuButton>
+              </Link>
+            </div>
             <SidebarMenu>
               {navItems.map((item) => {
                 const Icon = item.icon;

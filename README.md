@@ -51,12 +51,33 @@ A comprehensive Next.js expense tracking application with admin-only account cre
 
 ### 1. Database Setup
 
-Run the consolidated SQL script in your Supabase SQL Editor:
+Run the complete database setup script in your Supabase SQL Editor:
 
 ```sql
 -- Copy and paste the entire contents of DATABASE_SETUP.sql
--- This is the ONLY SQL file you need to run - it contains everything
+-- This single file contains everything you need:
+-- - All table schemas
+-- - Transaction-based balance calculation functions
+-- - Optimized indexes for performance
+-- - Row Level Security (RLS) policies
+-- - Proper grants and permissions
 ```
+
+**Key Database Features:**
+
+- ✅ **Transaction-Based Balance Calculation**: Balance calculated from actual transaction history, not stored values
+- ✅ **Consistency**: Admin and user views always show the same balance
+- ✅ **Performance**: Optimized with proper indexes
+- ✅ **Security**: Full RLS policies implemented
+- ✅ **Auditability**: Complete transaction history preserved
+
+**Balance Calculation Logic:**
+
+```
+User Balance = SUM(fund_in + deposit) - SUM(expense + fund_out + withdrawal)
+```
+
+The `user_balances` table exists for compatibility but is not used for calculations. All balance queries use the `get_user_balance()` function which calculates from the `fund_transactions` table.
 
 ### 2. Environment Configuration
 
@@ -198,34 +219,96 @@ SELECT * FROM public.get_user_info('your-email@example.com');
 
 ## 📁 Project Structure
 
+The project follows a modular, feature-based architecture for maintainability and scalability:
+
 ```
 src/
-├── app/                    # App Router pages
-│   ├── auth/
-│   │   └── login/         # Authentication pages
-│   ├── admin/
-│   │   ├── users/         # User management
-│   │   └── users-new/     # User creation
-│   ├── dashboard/         # Main dashboard
-│   ├── expenses/
-│   │   └── new/          # Expense creation
-│   ├── transactions/      # Transaction history
-│   ├── reports/          # Reporting interface
-│   └── api/              # API endpoints
-├── components/            # Reusable components
-│   ├── ui/               # Base UI components
-│   ├── DashboardContent.tsx
-│   ├── ExpenseForm.tsx
-│   ├── ReportsContent.tsx
-│   └── Sidebar.tsx
+├── app/                    # App Router pages (thin page components)
+│   ├── admin/users/        # User management (7 lines - delegates to features)
+│   ├── auth/login/         # Authentication pages
+│   ├── dashboard/          # Main dashboard
+│   ├── expenses/new/       # Expense creation
+│   ├── transactions/       # Transaction history
+│   ├── reports/           # Reporting interface
+│   └── api/               # API endpoints
+├── components/
+│   ├── features/          # Feature-specific components
+│   │   ├── admin/         # Admin functionality components
+│   │   ├── dashboard/     # Dashboard-specific components
+│   │   ├── transactions/  # Transaction management components
+│   │   └── reports/       # Report generation components
+│   ├── shared/            # Reusable components across features
+│   │   ├── LoadingStates.tsx    # Loading spinners & skeletons
+│   │   ├── StatusComponents.tsx # Empty states & status messages
+│   │   ├── CurrencyComponents.tsx # Currency display components
+│   │   └── TransactionFilters.tsx # Reusable filter interface
+│   └── ui/                # Base UI components (shadcn/ui)
+├── hooks/
+│   └── api/               # Custom hooks for API management
+│       ├── useExpenses.ts # Expense CRUD operations
+│       ├── useBalance.ts  # Balance management
+│       └── useAdminUsers.ts # User management
+├── lib/
+│   ├── constants/         # App-wide constants
+│   │   └── app.ts        # Categories, roles, etc.
+│   ├── utils/            # Utility functions
+│   │   ├── currency.ts   # Currency formatting & colors
+│   │   ├── date.ts       # Date formatting utilities
+│   │   └── validation.ts # Form validation helpers
+│   ├── auth-utils.ts     # Authentication utilities
+│   └── supabase/         # Supabase configuration
 ├── contexts/             # React contexts
-│   ├── SidebarContext.tsx
-│   └── ThemeContext.tsx
-├── lib/                  # Utilities and configurations
-│   ├── auth-utils.ts
-│   └── supabase/
-└── types/                # TypeScript type definitions
-    └── database.ts
+└── types/               # TypeScript type definitions
+```
+
+### 🏗️ Architecture Principles
+
+This project has been refactored to follow modern React development patterns:
+
+#### **Component Organization**
+
+- **Page Components**: Thin routing components that delegate to feature components
+- **Feature Components**: Domain-specific functionality grouped together
+- **Shared Components**: Reusable UI elements used across features
+- **Single Responsibility**: Each component has one clear purpose
+
+#### **Custom Hooks Pattern**
+
+All API interactions use custom hooks for consistent patterns:
+
+```typescript
+// Example usage
+const { expenses, loading, error, updateExpense, deleteExpense } =
+  useExpenses();
+const { balance, fetchBalance } = useBalance();
+const { users, fetchUsers, deleteUser } = useAdminUsers();
+```
+
+#### **Utility Functions**
+
+Common operations are centralized and reusable:
+
+```typescript
+import { formatCurrency, getBalanceColor, formatDate } from "@/lib/utils";
+
+// Consistent formatting everywhere
+const display = formatCurrency(amount);
+const color = getBalanceColor(balance);
+const date = formatDate(transaction.created_at);
+```
+
+#### **Component Composition**
+
+Large components are broken into smaller, focused pieces:
+
+```typescript
+// Before: 854-line AdminUsersPage
+// After: Composed of focused components
+<AdminUsersPageContent>
+  <CreateUserForm onSuccess={handleSuccess} />
+  <UsersTable users={users} onFundUser={handleFund} />
+  <FundUserModal user={selectedUser} onSuccess={refetch} />
+</AdminUsersPageContent>
 ```
 
 ## 🗄️ Database Schema
@@ -240,10 +323,11 @@ src/
 
 ### Key Functions
 
+- **get_user_balance()**: Transaction-based balance calculation (single source of truth)
 - **change_user_role()**: User role management
-- **add_user_funds()**: Admin fund allocation
-- **get_admin_users()**: User relationship queries
-- **get_user_balance()**: Balance calculation and tracking
+- **add_user_funds()**: Admin fund allocation with transaction recording
+- **get_admin_users_with_balances()**: User relationship queries with consistent balance calculation
+- **deduct_user_funds()**: Automatic expense processing with balance updates
 
 ### Security Policies
 
@@ -390,13 +474,77 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-production-supabase-anon-key
 5. Push to branch: `git push origin feature/amazing-feature`
 6. Open Pull Request
 
-### Code Standards
+### Code Standards & Patterns
 
-- Follow TypeScript best practices
-- Maintain 100% type coverage
-- Write comprehensive tests
-- Document all functions and components
-- Follow existing code patterns
+This project follows specific architectural patterns for consistency and maintainability:
+
+#### **Adding New Features**
+
+1. **Create feature-specific components** in `/components/features/[feature-name]/`
+2. **Use custom hooks** for API operations (see `/hooks/api/` for examples)
+3. **Leverage shared components** from `/components/shared/` for common UI
+4. **Keep page components thin** - they should mostly delegate to feature components
+
+#### **Component Guidelines**
+
+- **Single Responsibility**: Each component should have one clear purpose
+- **Composition over Inheritance**: Break large components into smaller, composable pieces
+- **Consistent Naming**: Use descriptive names that indicate purpose
+- **TypeScript**: Maintain 100% type coverage with proper interfaces
+
+#### **Utility Functions**
+
+- **Add reusable functions** to appropriate files in `/lib/utils/`
+- **Export through main utils** file for consistent imports
+- **Document complex functions** with JSDoc comments
+- **Write pure functions** where possible for easier testing
+
+#### **API Patterns**
+
+All API interactions should follow the established hook pattern:
+
+```typescript
+// Custom hook structure
+export function useFeature() {
+  const [state, setState] = useState({
+    data: [],
+    loading: false,
+    error: null,
+  });
+
+  const fetchData = useCallback(async () => {
+    try {
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+      // API call logic
+      setState((prev) => ({ ...prev, data: result, loading: false }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, error: error.message, loading: false }));
+    }
+  }, []);
+
+  return { ...state, fetchData, refetch: fetchData };
+}
+```
+
+#### **Breaking Down Large Components**
+
+When refactoring large components (>200 lines), follow this pattern:
+
+1. **Identify concerns** - What different things is the component doing?
+2. **Extract components** - Create focused sub-components for each concern
+3. **Create custom hooks** - Move API logic to reusable hooks
+4. **Use composition** - Combine smaller components in a parent orchestrator
+
+Example of good component breakdown:
+
+```
+LargeFeaturePage (was 800+ lines)
+├── FeaturePageContent.tsx (50 lines - orchestration)
+├── FeatureForm.tsx (120 lines - form handling)
+├── FeatureTable.tsx (80 lines - data display)
+├── FeatureModal.tsx (100 lines - modal interactions)
+└── useFeature.ts (custom hook for API)
+```
 
 ## 📄 License
 

@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-export default {
+const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,47 +10,72 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Your brand colors
+        brand: {
+          primary: "#3ecf8e",
+          "primary-hover": "#35b67f",
+          secondary: "#8b5cf6",
+        },
+        // shadcn/ui color system
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
         primary: {
-          50: "var(--color-primary-50)",
-          100: "var(--color-primary-100)",
-          200: "var(--color-primary-200)",
-          300: "var(--color-primary-300)",
-          400: "var(--color-primary-400)",
-          500: "var(--color-primary-500)",
-          600: "var(--color-primary-600)",
-          700: "var(--color-primary-700)",
-          800: "var(--color-primary-800)",
-          900: "var(--color-primary-900)",
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
-          50: "var(--color-secondary-50)",
-          100: "var(--color-secondary-100)",
-          200: "var(--color-secondary-200)",
-          300: "var(--color-secondary-300)",
-          400: "var(--color-secondary-400)",
-          500: "var(--color-secondary-500)",
-          600: "var(--color-secondary-600)",
-          700: "var(--color-secondary-700)",
-          800: "var(--color-secondary-800)",
-          900: "var(--color-secondary-900)",
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
         },
-        success: {
-          50: "var(--color-success-50)",
-          500: "var(--color-success-500)",
-          600: "var(--color-success-600)",
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
         },
-        warning: {
-          50: "var(--color-warning-50)",
-          500: "var(--color-warning-500)",
-          600: "var(--color-warning-600)",
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
         },
-        error: {
-          50: "var(--color-error-50)",
-          500: "var(--color-error-500)",
-          600: "var(--color-error-600)",
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
         },
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        chart: {
+          "1": "hsl(var(--chart-1))",
+          "2": "hsl(var(--chart-2))",
+          "3": "hsl(var(--chart-3))",
+          "4": "hsl(var(--chart-4))",
+          "5": "hsl(var(--chart-5))",
+        },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
     },
   },
   plugins: [],
-} satisfies Config;
+};
+
+export default config;
