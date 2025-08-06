@@ -1,14 +1,15 @@
 -- =============================================================================
--- SUPASPEND - COMPLETE DATABASE SETUP (CONSOLIDATED)
+-- SUPASPEND - PRODUCTION DATABASE SETUP
 -- =============================================================================
--- This script consolidates all database setup into a single file
--- Run this ONCE in your Supabase SQL Editor on a fresh database
--- Includes: Core setup, Fund management, Transaction history, Edit tracking
+-- This script sets up the complete database with transaction-based balance calculation
+-- Run this ONCE in your Supabase SQL Editor for new installations
+-- Features: Transaction-based balances, Full audit trail, Optimized performance
+-- Updated: August 6, 2025 - Production Ready
 -- =============================================================================
 
 -- Create enum types
 CREATE TYPE user_role AS ENUM ('user', 'admin', 'superadmin');
-CREATE TYPE transaction_type AS ENUM ('deposit', 'withdrawal', 'expense');
+CREATE TYPE transaction_type AS ENUM ('fund_in', 'fund_out', 'expense', 'deposit', 'withdrawal');
 
 -- =============================================================================
 -- CORE TABLES
@@ -158,13 +159,23 @@ CREATE OR REPLACE FUNCTION public.get_user_balance(target_user_id UUID)
 RETURNS NUMERIC AS $$
 DECLARE
   user_balance NUMERIC(10,2);
+  funds_in NUMERIC(10,2);
+  funds_out NUMERIC(10,2);
 BEGIN
-  -- Initialize balance if it doesn't exist
-  PERFORM public.initialize_user_balance(target_user_id);
+  -- Calculate total funds in (deposits/fund_in transactions)
+  SELECT COALESCE(SUM(amount), 0.00) INTO funds_in
+  FROM public.fund_transactions
+  WHERE user_id = target_user_id 
+    AND transaction_type IN ('fund_in', 'deposit');
   
-  SELECT balance INTO user_balance
-  FROM public.user_balances
-  WHERE user_id = target_user_id;
+  -- Calculate total funds out (expenses/fund_out transactions)
+  SELECT COALESCE(SUM(amount), 0.00) INTO funds_out
+  FROM public.fund_transactions
+  WHERE user_id = target_user_id 
+    AND transaction_type IN ('expense', 'fund_out', 'withdrawal');
+  
+  -- Balance = funds in - funds out
+  user_balance := funds_in - funds_out;
   
   RETURN COALESCE(user_balance, 0.00);
 END;
@@ -207,21 +218,16 @@ BEGIN
     RETURN 'Error: Amount must be positive';
   END IF;
   
-  -- Get current balance
+  -- Get current balance (for transaction record)
   previous_balance := public.get_user_balance(target_user_id);
   new_balance := previous_balance + amount;
-  
-  -- Update balance
-  UPDATE public.user_balances
-  SET balance = new_balance, updated_at = NOW()
-  WHERE user_id = target_user_id;
-  
-  -- Record transaction
+
+  -- Record transaction (balance is now calculated from transactions)
   INSERT INTO public.fund_transactions (
     user_id, admin_id, transaction_type, amount,
     previous_balance, new_balance, description
   ) VALUES (
-    target_user_id, admin_user_id, 'deposit', amount,
+    target_user_id, admin_user_id, 'fund_in', amount,
     previous_balance, new_balance, description
   );
   
@@ -246,16 +252,11 @@ BEGIN
     RETURN 'Error: Amount must be positive';
   END IF;
   
-  -- Get current balance
+  -- Get current balance (for transaction record)
   previous_balance := public.get_user_balance(target_user_id);
   new_balance := previous_balance - amount;
   
-  -- Update balance (allow negative balance as per requirements)
-  UPDATE public.user_balances
-  SET balance = new_balance, updated_at = NOW()
-  WHERE user_id = target_user_id;
-  
-  -- Record transaction
+  -- Record transaction (balance is now calculated from transactions, allow negative balance)
   INSERT INTO public.fund_transactions (
     user_id, admin_id, transaction_type, amount,
     previous_balance, new_balance, description, expense_id
@@ -339,12 +340,11 @@ BEGIN
     pu.id,
     pu.username,
     pu.role,
-    COALESCE(ub.balance, 0.00) as balance,
+    public.get_user_balance(pu.id) as balance,
     pu.created_at,
     au.email::TEXT
   FROM public.users pu
   JOIN auth.users au ON pu.id = au.id
-  LEFT JOIN public.user_balances ub ON pu.id = ub.user_id
   WHERE pu.created_by = admin_id
   ORDER BY pu.created_at DESC;
 END;

@@ -15,6 +15,8 @@ import Link from "next/link";
 import type { Expense } from "@/types/database";
 import { EXPENSE_CATEGORIES } from "@/types/database";
 import { getCurrentUser } from "@/lib/auth-utils";
+import { useBalance } from "@/hooks/useBalance";
+import { formatCurrency, getBalanceColor } from "@/lib/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -40,8 +42,7 @@ export default function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "month" | "week">("month");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [balance, setBalance] = useState<number>(0);
-  const [balanceLoading, setBalanceLoading] = useState(true);
+  const { balance, loading: balanceLoading } = useBalance();
 
   const fetchExpenses = useCallback(async () => {
     try {
@@ -117,42 +118,9 @@ export default function DashboardContent() {
     }
   }, [supabase, filter, categoryFilter]);
 
-  const fetchBalance = useCallback(async () => {
-    try {
-      setBalanceLoading(true);
-      const response = await fetch("/api/balance");
-      if (response.ok) {
-        const { balance: userBalance } = await response.json();
-        setBalance(userBalance);
-      } else {
-        console.error("Failed to fetch balance");
-        setBalance(0);
-      }
-    } catch (error) {
-      console.error("Error fetching balance:", error);
-      setBalance(0);
-    } finally {
-      setBalanceLoading(false);
-    }
-  }, []);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
-  const getBalanceColor = (balance: number) => {
-    if (balance < 0) return "text-destructive";
-    if (balance === 0) return "text-muted-foreground";
-    return "text-green-600 dark:text-green-400";
-  };
-
   useEffect(() => {
     fetchExpenses();
-    fetchBalance();
-  }, [fetchExpenses, fetchBalance]);
+  }, [fetchExpenses]);
 
   const totalAmount = expenses.reduce(
     (sum, expense) => sum + expense.amount,
@@ -202,7 +170,7 @@ export default function DashboardContent() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {/* Balance Card */}
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="px-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <Wallet className="h-8 w-8 text-indigo-600" />
@@ -238,7 +206,7 @@ export default function DashboardContent() {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="px-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <DollarSign className="h-8 w-8 text-green-600" />
@@ -264,7 +232,7 @@ export default function DashboardContent() {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="px-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <Calendar className="h-8 w-8 text-blue-600" />
@@ -287,7 +255,7 @@ export default function DashboardContent() {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="px-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <TrendingUp className="h-8 w-8 text-purple-600" />
@@ -307,7 +275,7 @@ export default function DashboardContent() {
 
       {/* Filters */}
       <Card className="mb-6">
-        <CardContent className="p-4">
+        <CardContent className="px-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
             <div className="flex items-center space-x-4">
               <Filter className="h-5 w-5 text-muted-foreground" />
@@ -359,7 +327,7 @@ export default function DashboardContent() {
           </div>
         </CardHeader>
 
-        <CardContent className="p-0">
+        <CardContent className="px-6">
           {expenses.length === 0 ? (
             <div className="text-center py-12">
               <DollarSign className="mx-auto h-12 w-12 text-muted-foreground" />

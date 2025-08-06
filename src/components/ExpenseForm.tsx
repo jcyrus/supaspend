@@ -1,21 +1,17 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Save, ArrowLeft, Wallet, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { EXPENSE_CATEGORIES } from "@/types/database";
 import type { ExpenseInsert } from "@/types/database";
+import { useBalance } from "@/hooks/useBalance";
+import { formatCurrency, getBalanceColor } from "@/lib/utils/currency";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,8 +27,7 @@ export default function ExpenseForm() {
   const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [balance, setBalance] = useState<number>(0);
-  const [balanceLoading, setBalanceLoading] = useState(true);
+  const { balance, loading: balanceLoading } = useBalance();
   const [formData, setFormData] = useState({
     date: format(new Date(), "yyyy-MM-dd"),
     amount: "",
@@ -94,46 +89,10 @@ export default function ExpenseForm() {
     }
   };
 
-  const fetchUserBalance = async () => {
-    try {
-      setBalanceLoading(true);
-      const response = await fetch("/api/balance");
-      if (response.ok) {
-        const { balance: userBalance } = await response.json();
-        setBalance(userBalance);
-      } else {
-        console.error("Failed to fetch balance");
-        setBalance(0);
-      }
-    } catch (error) {
-      console.error("Error fetching balance:", error);
-      setBalance(0);
-    } finally {
-      setBalanceLoading(false);
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
-  const getBalanceColor = (balance: number) => {
-    if (balance < 0) return "text-destructive";
-    if (balance === 0) return "text-muted-foreground";
-    return "text-green-600 dark:text-green-400";
-  };
-
   const getNewBalancePreview = () => {
     const amount = parseFloat(formData.amount) || 0;
     return balance - amount;
   };
-
-  useEffect(() => {
-    fetchUserBalance();
-  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -145,7 +104,7 @@ export default function ExpenseForm() {
   };
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-4xl">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center space-x-4 mb-4">
@@ -164,7 +123,7 @@ export default function ExpenseForm() {
 
       {/* Balance Card */}
       <Card className="mb-6">
-        <CardContent className="p-6">
+        <CardContent className="px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-primary/10 rounded-full">
@@ -228,7 +187,7 @@ export default function ExpenseForm() {
 
       {/* Form */}
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="px-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Date */}
             <div className="space-y-2">
