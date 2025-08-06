@@ -25,6 +25,17 @@ import {
   Wallet,
   AlertTriangle,
 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { Expense, AdminUserExpense } from "@/types/database";
 import { getAdminUserExpenses, checkUserRole } from "@/lib/auth-utils";
 
@@ -361,19 +372,18 @@ export default function ReportsContent() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="max-w-7xl mx-auto py-6">
+        <div className="space-y-6">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-muted rounded w-1/4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
-                >
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
-                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                </div>
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <div className="h-4 bg-muted rounded w-1/2 mb-2"></div>
+                    <div className="h-8 bg-muted rounded w-3/4"></div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
@@ -386,10 +396,10 @@ export default function ReportsContent() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold">
             {viewMode === "admin" ? "Admin Reports" : "Expense Reports"}
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">
+          <p className="text-muted-foreground mt-1">
             {viewMode === "admin"
               ? "View expense reports for users you manage"
               : "Analyze your spending patterns and trends"}
@@ -397,440 +407,427 @@ export default function ReportsContent() {
         </div>
         <div className="flex items-center space-x-4">
           {isAdmin && (
-            <div className="flex rounded-md shadow-sm">
-              <button
+            <div className="flex">
+              <Button
                 onClick={() => setViewMode("personal")}
-                className={`px-4 py-2 text-sm font-medium rounded-l-md border ${
-                  viewMode === "personal"
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
-                }`}
+                variant={viewMode === "personal" ? "default" : "outline"}
+                size="sm"
+                className="rounded-r-none"
               >
-                <User className="h-4 w-4 inline mr-1" />
+                <User className="h-4 w-4 mr-1" />
                 Personal
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setViewMode("admin")}
-                className={`px-4 py-2 text-sm font-medium rounded-r-md border-t border-r border-b ${
-                  viewMode === "admin"
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
-                }`}
+                variant={viewMode === "admin" ? "default" : "outline"}
+                size="sm"
+                className="rounded-l-none"
               >
-                <Users className="h-4 w-4 inline mr-1" />
+                <Users className="h-4 w-4 mr-1" />
                 Admin View
-              </button>
+              </Button>
             </div>
           )}
-          <button
+          <Button
             onClick={downloadReport}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center space-x-2"
+            className="bg-green-600 hover:bg-green-700"
           >
-            <Download className="h-4 w-4" />
-            <span>Export CSV</span>
-          </button>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Time Period:
-            </span>
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm font-medium">Time Period:</span>
+            </div>
+            <div className="flex space-x-2">
+              {[
+                { value: "3months" as const, label: "3 Months" },
+                { value: "6months" as const, label: "6 Months" },
+                { value: "1year" as const, label: "1 Year" },
+              ].map((period) => (
+                <Button
+                  key={period.value}
+                  onClick={() => setSelectedPeriod(period.value)}
+                  variant={
+                    selectedPeriod === period.value ? "default" : "outline"
+                  }
+                  size="sm"
+                >
+                  {period.label}
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="flex space-x-2">
-            {[
-              { value: "3months" as const, label: "3 Months" },
-              { value: "6months" as const, label: "6 Months" },
-              { value: "1year" as const, label: "1 Year" },
-            ].map((period) => (
-              <button
-                key={period.value}
-                onClick={() => setSelectedPeriod(period.value)}
-                className={`px-3 py-1 rounded-md text-sm font-medium ${
-                  selectedPeriod === period.value
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                }`}
-              >
-                {period.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {/* Balance Card - Personal View */}
         {viewMode === "personal" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Wallet className="h-8 w-8 text-indigo-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                  Available Balance
-                </p>
-                <div
-                  className={`text-2xl font-semibold ${getBalanceColor(
-                    balance
-                  )}`}
-                >
-                  {balanceLoading ? (
-                    <div className="animate-pulse h-8 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
-                  ) : (
-                    <>
-                      {formatCurrency(balance)}
-                      {balance < 0 && (
-                        <div className="flex items-center text-xs text-red-600 dark:text-red-400 mt-1">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          Negative
-                        </div>
-                      )}
-                    </>
-                  )}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Wallet className="h-8 w-8 text-indigo-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Available Balance
+                  </p>
+                  <div
+                    className={`text-2xl font-semibold ${getBalanceColor(
+                      balance
+                    )}`}
+                  >
+                    {balanceLoading ? (
+                      <div className="animate-pulse h-8 bg-muted rounded w-20"></div>
+                    ) : (
+                      <>
+                        {formatCurrency(balance)}
+                        {balance < 0 && (
+                          <div className="flex items-center text-xs text-red-600 dark:text-red-400 mt-1">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Negative
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Total Balance Card - Admin View */}
         {viewMode === "admin" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Wallet className="h-8 w-8 text-indigo-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                  Total User Balances
-                </p>
-                <div
-                  className={`text-2xl font-semibold ${getBalanceColor(
-                    Object.values(userBalances).reduce(
-                      (sum, bal) => sum + bal,
-                      0
-                    )
-                  )}`}
-                >
-                  {formatCurrency(
-                    Object.values(userBalances).reduce(
-                      (sum, bal) => sum + bal,
-                      0
-                    )
-                  )}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Wallet className="h-8 w-8 text-indigo-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total User Balances
+                  </p>
+                  <div
+                    className={`text-2xl font-semibold ${getBalanceColor(
+                      Object.values(userBalances).reduce(
+                        (sum, bal) => sum + bal,
+                        0
+                      )
+                    )}`}
+                  >
+                    {formatCurrency(
+                      Object.values(userBalances).reduce(
+                        (sum, bal) => sum + bal,
+                        0
+                      )
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <TrendingUp className="h-8 w-8 text-blue-600" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <TrendingUp className="h-8 w-8 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Expenses
+                </p>
+                <p className="text-2xl font-semibold">
+                  ${totalAmount.toFixed(2)}
+                </p>
+              </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                Total Expenses
-              </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                ${totalAmount.toFixed(2)}
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Calendar className="h-8 w-8 text-green-600" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Calendar className="h-8 w-8 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">
+                  {viewMode === "admin" ? "Users Tracked" : "Transactions"}
+                </p>
+                <p className="text-2xl font-semibold">
+                  {viewMode === "admin"
+                    ? new Set((adminUserExpenses || []).map((e) => e.user_id))
+                        .size
+                    : currentExpenses.length}
+                </p>
+              </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                {viewMode === "admin" ? "Users Tracked" : "Transactions"}
-              </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                {viewMode === "admin"
-                  ? new Set((adminUserExpenses || []).map((e) => e.user_id))
-                      .size
-                  : currentExpenses.length}
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <TrendingUp className="h-8 w-8 text-purple-600" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <TrendingUp className="h-8 w-8 text-purple-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Average per Month
+                </p>
+                <p className="text-2xl font-semibold">
+                  $
+                  {Object.keys(monthlyData).length > 0
+                    ? (totalAmount / Object.keys(monthlyData).length).toFixed(2)
+                    : "0.00"}
+                </p>
+              </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                Average per Month
-              </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                $
-                {Object.keys(monthlyData).length > 0
-                  ? (totalAmount / Object.keys(monthlyData).length).toFixed(2)
-                  : "0.00"}
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-            Expenses by Category
-          </h3>
-          <div className="h-64">
-            {Object.keys(categoryData).length > 0 ? (
-              <Doughnut data={categoryChartData} options={chartOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
-                {viewMode === "admin"
-                  ? "No user expenses found for the selected period"
-                  : "No expenses found for the selected period"}
-              </div>
-            )}
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Expenses by Category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {Object.keys(categoryData).length > 0 ? (
+                <Doughnut data={categoryChartData} options={chartOptions} />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  {viewMode === "admin"
+                    ? "No user expenses found for the selected period"
+                    : "No expenses found for the selected period"}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-            Monthly Spending
-          </h3>
-          <div className="h-64">
-            {Object.keys(monthlyData).length > 0 ? (
-              <Bar data={monthlyChartData} options={chartOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
-                {viewMode === "admin"
-                  ? "No user expenses found for the selected period"
-                  : "No expenses found for the selected period"}
-              </div>
-            )}
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Monthly Spending</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {Object.keys(monthlyData).length > 0 ? (
+                <Bar data={monthlyChartData} options={chartOptions} />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  {viewMode === "admin"
+                    ? "No user expenses found for the selected period"
+                    : "No expenses found for the selected period"}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Trend Chart or User Summary */}
       {viewMode === "admin" ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-            User Summary
-          </h3>
-          {adminUserExpenses.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-900">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Balance
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Total Expenses
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Transactions
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Average per Month
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {(() => {
-                    // Group expenses by user
-                    const userSummary = adminUserExpenses.reduce(
-                      (acc, expense) => {
-                        const userId = expense.user_id;
-                        if (!acc[userId]) {
-                          acc[userId] = {
-                            username: expense.username,
-                            email: expense.user_email,
-                            totalAmount: 0,
-                            transactionCount: 0,
-                            monthlyData: {},
-                          };
-                        }
-                        acc[userId].totalAmount += expense.amount;
-                        acc[userId].transactionCount += 1;
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>User Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {adminUserExpenses.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Balance</TableHead>
+                      <TableHead>Total Expenses</TableHead>
+                      <TableHead>Transactions</TableHead>
+                      <TableHead>Average per Month</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(() => {
+                      // Group expenses by user
+                      const userSummary = adminUserExpenses.reduce(
+                        (acc, expense) => {
+                          const userId = expense.user_id;
+                          if (!acc[userId]) {
+                            acc[userId] = {
+                              username: expense.username,
+                              email: expense.user_email,
+                              totalAmount: 0,
+                              transactionCount: 0,
+                              monthlyData: {},
+                            };
+                          }
+                          acc[userId].totalAmount += expense.amount;
+                          acc[userId].transactionCount += 1;
 
-                        // Track monthly data for average calculation
-                        const month = format(
-                          new Date(expense.date),
-                          "MMM yyyy"
-                        );
-                        acc[userId].monthlyData[month] =
-                          (acc[userId].monthlyData[month] || 0) +
-                          expense.amount;
+                          // Track monthly data for average calculation
+                          const month = format(
+                            new Date(expense.date),
+                            "MMM yyyy"
+                          );
+                          acc[userId].monthlyData[month] =
+                            (acc[userId].monthlyData[month] || 0) +
+                            expense.amount;
 
-                        return acc;
-                      },
-                      {} as Record<
-                        string,
-                        {
-                          username: string;
-                          email: string;
-                          totalAmount: number;
-                          transactionCount: number;
-                          monthlyData: Record<string, number>;
-                        }
-                      >
-                    );
-
-                    return Object.entries(userSummary).map(
-                      ([userId, summary]) => (
-                        <tr
-                          key={userId}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                          return acc;
+                        },
+                        {} as Record<
+                          string,
+                          {
+                            username: string;
+                            email: string;
+                            totalAmount: number;
+                            transactionCount: number;
+                            monthlyData: Record<string, number>;
+                          }
                         >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {summary.username}
-                              </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400">
-                                {summary.email}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`text-sm font-medium ${getBalanceColor(
-                                userBalances[userId] || 0
-                              )}`}
-                            >
-                              {formatCurrency(userBalances[userId] || 0)}
-                              {(userBalances[userId] || 0) < 0 && (
-                                <div className="flex items-center text-xs text-red-600 dark:text-red-400 mt-1">
-                                  <AlertTriangle className="h-3 w-3 mr-1" />
-                                  Negative
+                      );
+
+                      return Object.entries(userSummary).map(
+                        ([userId, summary]) => (
+                          <TableRow key={userId}>
+                            <TableCell>
+                              <div>
+                                <div className="text-sm font-medium">
+                                  {summary.username}
                                 </div>
-                              )}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                            ${summary.totalAmount.toFixed(2)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                            {summary.transactionCount}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                            $
-                            {Object.keys(summary.monthlyData).length > 0
-                              ? (
-                                  summary.totalAmount /
-                                  Object.keys(summary.monthlyData).length
-                                ).toFixed(2)
-                              : "0.00"}
-                          </td>
-                        </tr>
-                      )
-                    );
-                  })()}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-32 text-gray-500 dark:text-gray-400">
-              No user expenses found for the selected period
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-            Spending Trend
-          </h3>
-          <div className="h-64">
-            {Object.keys(monthlyData).length > 0 ? (
-              <Line data={trendChartData} options={chartOptions} />
+                                <div className="text-sm text-muted-foreground">
+                                  {summary.email}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span
+                                className={`text-sm font-medium ${getBalanceColor(
+                                  userBalances[userId] || 0
+                                )}`}
+                              >
+                                {formatCurrency(userBalances[userId] || 0)}
+                                {(userBalances[userId] || 0) < 0 && (
+                                  <div className="flex items-center text-xs text-red-600 dark:text-red-400 mt-1">
+                                    <AlertTriangle className="h-3 w-3 mr-1" />
+                                    Negative
+                                  </div>
+                                )}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-sm font-medium">
+                              ${summary.totalAmount.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {summary.transactionCount}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              $
+                              {Object.keys(summary.monthlyData).length > 0
+                                ? (
+                                    summary.totalAmount /
+                                    Object.keys(summary.monthlyData).length
+                                  ).toFixed(2)
+                                : "0.00"}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      );
+                    })()}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
-                No expenses found for the selected period
+              <div className="flex items-center justify-center h-32 text-muted-foreground">
+                No user expenses found for the selected period
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Spending Trend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {Object.keys(monthlyData).length > 0 ? (
+                <Line data={trendChartData} options={chartOptions} />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  No expenses found for the selected period
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Recent Transactions Table - Admin View */}
       {viewMode === "admin" && adminUserExpenses.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-            Recent User Expenses
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-900">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Description
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {adminUserExpenses.slice(0, 10).map((expense) => (
-                  <tr
-                    key={expense.expense_id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {expense.username}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent User Expenses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Description</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {adminUserExpenses.slice(0, 10).map((expense) => (
+                    <TableRow key={expense.expense_id}>
+                      <TableCell>
+                        <div>
+                          <div className="text-sm font-medium">
+                            {expense.username}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {expense.user_email}
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {expense.user_email}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {format(new Date(expense.date), "MMM dd, yyyy")}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-                        {expense.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                      ${expense.amount.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                      {expense.description || "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {format(new Date(expense.date), "MMM dd, yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{expense.category}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm font-medium">
+                        ${expense.amount.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {expense.description || "-"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

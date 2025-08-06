@@ -23,6 +23,35 @@ import {
   TrendingUp,
   History,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -224,15 +253,6 @@ export default function AdminUsersPage() {
     setFundSuccess("");
   };
 
-  const closeFundModal = () => {
-    setShowFundModal(false);
-    setSelectedUser(null);
-    setFundAmount("");
-    setFundDescription("");
-    setFundError("");
-    setFundSuccess("");
-  };
-
   const handleAddFunds = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
@@ -297,12 +317,6 @@ export default function AdminUsersPage() {
     }
   };
 
-  const closeTransactionHistory = () => {
-    setShowTransactionHistory(false);
-    setSelectedUser(null);
-    setTransactionHistory([]);
-  };
-
   const handleDeleteUser = async (userId: string) => {
     if (
       !confirm(
@@ -330,17 +344,6 @@ export default function AdminUsersPage() {
     }
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "bg-purple-100 text-purple-800";
-      case "superadmin":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-blue-100 text-blue-800";
-    }
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -349,8 +352,8 @@ export default function AdminUsersPage() {
   };
 
   const getBalanceColor = (balance: number) => {
-    if (balance < 0) return "text-red-600 dark:text-red-400";
-    if (balance === 0) return "text-gray-600 dark:text-gray-400";
+    if (balance < 0) return "text-destructive";
+    if (balance === 0) return "text-muted-foreground";
     return "text-green-600 dark:text-green-400";
   };
 
@@ -377,7 +380,7 @@ export default function AdminUsersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -387,17 +390,12 @@ export default function AdminUsersPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            User Management
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          <h1 className="text-2xl font-semibold">User Management</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage users, their roles, and fund balances
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
+        <Button onClick={() => setShowCreateForm(!showCreateForm)}>
           {showCreateForm ? (
             <>
               <X className="h-4 w-4 mr-2" />
@@ -409,425 +407,371 @@ export default function AdminUsersPage() {
               Create User
             </>
           )}
-        </button>
+        </Button>
       </div>
 
       {/* Create User Form */}
       {showCreateForm && (
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-            Create New User
-          </h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>Create New User</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              {createError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{createError}</AlertDescription>
+                </Alert>
+              )}
 
-          <form onSubmit={handleCreateUser} className="space-y-4">
-            {createError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                {createError}
+              {createSuccess && (
+                <Alert>
+                  <AlertDescription>{createSuccess}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email address</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    name="username"
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={(e) =>
+                      setFormData({ ...formData, username: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="role">User Role</Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        role: value as UserRole,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            )}
 
-            {createSuccess && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-                {createSuccess}
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  disabled={createLoading}
+                  variant="default"
                 >
-                  Email address
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
+                  {createLoading ? "Creating..." : "Create User"}
+                </Button>
               </div>
-
-              <div>
-                <label
-                  htmlFor="username"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Username
-                </label>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  required
-                  value={formData.username}
-                  onChange={(e) =>
-                    setFormData({ ...formData, username: e.target.value })
-                  }
-                  className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="role"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  User Role
-                </label>
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      role: e.target.value as UserRole,
-                    })
-                  }
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={createLoading}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-              >
-                {createLoading ? "Creating..." : "Create User"}
-              </button>
-            </div>
-          </form>
-        </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Users Table */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
             <Users className="h-5 w-5 mr-2" />
             Users ({users.length})
-          </h2>
-        </div>
-
-        <div className="overflow-hidden">
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
           {users.length === 0 ? (
             <div className="text-center py-12">
-              <Users className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-                No users found
-              </h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-2 text-sm font-medium">No users found</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Get started by creating your first user.
               </p>
               <div className="mt-6">
-                <button
-                  onClick={() => setShowCreateForm(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                >
+                <Button onClick={() => setShowCreateForm(true)}>
                   <UserPlus className="h-4 w-4 mr-2" />
                   Create User
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-900">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Role
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Balance
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {usersWithBalances.map((user) => (
-                    <tr
-                      key={user.user_id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                              <span className="text-sm font-medium text-blue-600 dark:text-blue-200">
-                                {user.username.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {user.username}
-                            </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
-                              <Mail className="h-3 w-3 mr-1" />
-                              {user.email}
-                            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Balance</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {usersWithBalances.map((user) => (
+                  <TableRow key={user.user_id} className="hover:bg-muted/50">
+                    <TableCell>
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-sm font-medium text-primary">
+                              {user.username.charAt(0).toUpperCase()}
+                            </span>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="ml-4">
+                          <div className="text-sm font-medium">
+                            {user.username}
+                          </div>
+                          <div className="text-sm text-muted-foreground flex items-center">
+                            <Mail className="h-3 w-3 mr-1" />
+                            {user.email}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          user.role === "admin" || user.role === "superadmin"
+                            ? "default"
+                            : "secondary"
+                        }
+                        className="flex items-center w-fit"
+                      >
+                        <Shield className="h-3 w-3 mr-1" />
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <Wallet className="h-4 w-4 mr-2 text-muted-foreground" />
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(
-                            user.role
-                          )} dark:bg-opacity-80 dark:text-opacity-90`}
+                          className={`text-sm font-medium ${getBalanceColor(
+                            user.balance
+                          )}`}
                         >
-                          <Shield className="h-3 w-3 mr-1" />
-                          {user.role}
+                          {formatCurrency(user.balance)}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Wallet className="h-4 w-4 mr-2 text-gray-400" />
-                          <span
-                            className={`text-sm font-medium ${getBalanceColor(
-                              user.balance
-                            )}`}
-                          >
-                            {formatCurrency(user.balance)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        <div className="flex items-center">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {new Date(user.created_at).toLocaleDateString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => openFundModal(user)}
-                            className="text-green-600 hover:text-green-900 dark:hover:text-green-400 p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
-                            title="Add funds"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleViewTransactionHistory(user)}
-                            className="text-blue-600 hover:text-blue-900 dark:hover:text-blue-400 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                            title="Transaction history"
-                          >
-                            <History className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(user.user_id)}
-                            className="text-red-600 hover:text-red-900 dark:hover:text-red-400 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
-                            title="Delete user"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center text-muted-foreground">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openFundModal(user)}
+                          className="text-green-600 hover:text-green-900 hover:bg-green-50"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewTransactionHistory(user)}
+                          className="text-blue-600 hover:text-blue-900 hover:bg-blue-50"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteUser(user.user_id)}
+                          className="text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Fund Modal */}
-      {showFundModal && selectedUser && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                  Add Funds to {selectedUser.username}
-                </h3>
-                <button
-                  onClick={closeFundModal}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+      <Dialog open={showFundModal} onOpenChange={setShowFundModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Funds to {selectedUser?.username}</DialogTitle>
+            <DialogDescription>
+              Add funds to this user&apos;s petty cash balance.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Current Balance:
+                </span>
+                <span
+                  className={`text-sm font-medium ${getBalanceColor(
+                    selectedUser?.balance || 0
+                  )}`}
                 >
-                  <X className="h-5 w-5" />
-                </button>
+                  {formatCurrency(selectedUser?.balance || 0)}
+                </span>
               </div>
-
-              <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-300">
-                    Current Balance:
-                  </span>
-                  <span
-                    className={`text-sm font-medium ${getBalanceColor(
-                      selectedUser.balance
-                    )}`}
-                  >
-                    {formatCurrency(selectedUser.balance)}
-                  </span>
-                </div>
-              </div>
-
-              <form onSubmit={handleAddFunds} className="space-y-4">
-                {fundError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
-                    {fundError}
-                  </div>
-                )}
-
-                {fundSuccess && (
-                  <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded text-sm">
-                    {fundSuccess}
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Amount ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    required
-                    value={fundAmount}
-                    onChange={(e) => setFundAmount(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Description (optional)
-                  </label>
-                  <textarea
-                    value={fundDescription}
-                    onChange={(e) => setFundDescription(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    rows={3}
-                    placeholder="Optional note for this deposit..."
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={closeFundModal}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={fundLoading}
-                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-                  >
-                    <div className="flex items-center">
-                      <DollarSign className="h-4 w-4 mr-1" />
-                      {fundLoading ? "Adding..." : "Add Funds"}
-                    </div>
-                  </button>
-                </div>
-              </form>
             </div>
+
+            <form onSubmit={handleAddFunds} className="space-y-4">
+              {fundError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{fundError}</AlertDescription>
+                </Alert>
+              )}
+
+              {fundSuccess && (
+                <Alert>
+                  <AlertDescription>{fundSuccess}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="fund-amount">Amount ($)</Label>
+                <Input
+                  id="fund-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={fundAmount}
+                  onChange={(e) => setFundAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fund-description">Description (optional)</Label>
+                <Textarea
+                  id="fund-description"
+                  value={fundDescription}
+                  onChange={(e) => setFundDescription(e.target.value)}
+                  rows={3}
+                  placeholder="Optional note for this deposit..."
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowFundModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={fundLoading}>
+                  <DollarSign className="h-4 w-4 mr-1" />
+                  {fundLoading ? "Adding..." : "Add Funds"}
+                </Button>
+              </div>
+            </form>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Transaction History Modal */}
-      {showTransactionHistory && selectedUser && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-10 mx-auto p-5 border max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                  Transaction History - {selectedUser.username}
-                </h3>
-                <button
-                  onClick={closeTransactionHistory}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+      <Dialog
+        open={showTransactionHistory}
+        onOpenChange={setShowTransactionHistory}
+      >
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              Transaction History - {selectedUser?.username}
+            </DialogTitle>
+            <DialogDescription>
+              View all funding transactions for this user.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Current Balance:
+                </span>
+                <span
+                  className={`text-sm font-medium ${getBalanceColor(
+                    selectedUser?.balance || 0
+                  )}`}
                 >
-                  <X className="h-5 w-5" />
-                </button>
+                  {formatCurrency(selectedUser?.balance || 0)}
+                </span>
               </div>
+            </div>
 
-              <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-300">
-                    Current Balance:
-                  </span>
-                  <span
-                    className={`text-sm font-medium ${getBalanceColor(
-                      selectedUser.balance
-                    )}`}
-                  >
-                    {formatCurrency(selectedUser.balance)}
-                  </span>
+            <div className="max-h-96 overflow-y-auto">
+              {transactionHistory.length === 0 ? (
+                <div className="text-center py-8">
+                  <TrendingUp className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <h3 className="mt-2 text-sm font-medium">
+                    No transactions found
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    This user hasn&apos;t had any fund transactions yet.
+                  </p>
                 </div>
-              </div>
-
-              <div className="max-h-96 overflow-y-auto">
-                {transactionHistory.length === 0 ? (
-                  <div className="text-center py-8">
-                    <TrendingUp className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-                      No transactions found
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                      This user hasn&apos;t had any fund transactions yet.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {transactionHistory.map((transaction) => (
-                      <div
-                        key={transaction.transaction_id}
-                        className="border border-gray-200 dark:border-gray-600 rounded-lg p-4"
-                      >
+              ) : (
+                <div className="space-y-3">
+                  {transactionHistory.map((transaction) => (
+                    <Card key={transaction.transaction_id}>
+                      <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div
@@ -848,16 +792,16 @@ export default function AdminUsersPage() {
                               )}
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
+                              <div className="text-sm font-medium capitalize">
                                 {transaction.transaction_type}
                                 {transaction.admin_username && (
-                                  <span className="text-gray-500 dark:text-gray-400 ml-2">
+                                  <span className="text-muted-foreground ml-2">
                                     by {transaction.admin_username}
                                   </span>
                                 )}
                               </div>
                               {transaction.description && (
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                <div className="text-xs text-muted-foreground">
                                   {transaction.description}
                                 </div>
                               )}
@@ -876,34 +820,34 @@ export default function AdminUsersPage() {
                                 : "-"}
                               {formatCurrency(transaction.amount)}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-muted-foreground">
                               Balance: {formatCurrency(transaction.new_balance)}
                             </div>
-                            <div className="text-xs text-gray-400 dark:text-gray-500">
+                            <div className="text-xs text-muted-foreground">
                               {new Date(
                                 transaction.created_at
                               ).toLocaleString()}
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
 
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={closeTransactionHistory}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  Close
-                </button>
-              </div>
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowTransactionHistory(false)}
+              >
+                Close
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -15,6 +15,24 @@ import Link from "next/link";
 import type { Expense } from "@/types/database";
 import { EXPENSE_CATEGORIES } from "@/types/database";
 import { getCurrentUser } from "@/lib/auth-utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function DashboardContent() {
   const supabase = createClient();
@@ -126,8 +144,8 @@ export default function DashboardContent() {
   };
 
   const getBalanceColor = (balance: number) => {
-    if (balance < 0) return "text-red-600 dark:text-red-400";
-    if (balance === 0) return "text-gray-600 dark:text-gray-400";
+    if (balance < 0) return "text-destructive";
+    if (balance === 0) return "text-muted-foreground";
     return "text-green-600 dark:text-green-400";
   };
 
@@ -183,235 +201,218 @@ export default function DashboardContent() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {/* Balance Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Wallet className="h-8 w-8 text-indigo-600" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Wallet className="h-8 w-8 text-indigo-600" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-muted-foreground truncate">
+                    Available Balance
+                  </dt>
+                  <dd
+                    className={`text-lg font-medium ${getBalanceColor(
+                      balance
+                    )}`}
+                  >
+                    {balanceLoading ? (
+                      <div className="animate-pulse h-6 bg-muted rounded w-20"></div>
+                    ) : (
+                      <>
+                        {formatCurrency(balance)}
+                        {balance < 0 && (
+                          <div className="flex items-center text-xs text-destructive mt-1">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Negative
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </dd>
+                </dl>
+              </div>
             </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt className="text-sm font-medium text-gray-500 dark:text-gray-300 truncate">
-                  Available Balance
-                </dt>
-                <dd
-                  className={`text-lg font-medium ${getBalanceColor(balance)}`}
-                >
-                  {balanceLoading ? (
-                    <div className="animate-pulse h-6 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
-                  ) : (
-                    <>
-                      {formatCurrency(balance)}
-                      {balance < 0 && (
-                        <div className="flex items-center text-xs text-red-600 dark:text-red-400 mt-1">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          Negative
-                        </div>
-                      )}
-                    </>
-                  )}
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <DollarSign className="h-8 w-8 text-green-600" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <DollarSign className="h-8 w-8 text-green-600" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-muted-foreground truncate">
+                    Total Expenses (
+                    {filter === "month"
+                      ? "This Month"
+                      : filter === "week"
+                      ? "Last 7 Days"
+                      : "All Time"}
+                    )
+                  </dt>
+                  <dd className="text-lg font-medium">
+                    ${totalAmount.toFixed(2)}
+                  </dd>
+                </dl>
+              </div>
             </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt className="text-sm font-medium text-gray-500 dark:text-gray-300 truncate">
-                  Total Expenses (
-                  {filter === "month"
-                    ? "This Month"
-                    : filter === "week"
-                    ? "Last 7 Days"
-                    : "All Time"}
-                  )
-                </dt>
-                <dd className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                  ${totalAmount.toFixed(2)}
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Calendar className="h-8 w-8 text-blue-600" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Calendar className="h-8 w-8 text-blue-600" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-muted-foreground truncate">
+                    This Month&apos;s Expenses
+                  </dt>
+                  <dd className="text-lg font-medium">
+                    $
+                    {thisMonthExpenses
+                      .reduce((sum, expense) => sum + expense.amount, 0)
+                      .toFixed(2)}
+                  </dd>
+                </dl>
+              </div>
             </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt className="text-sm font-medium text-gray-500 dark:text-gray-300 truncate">
-                  This Month&apos;s Expenses
-                </dt>
-                <dd className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                  $
-                  {thisMonthExpenses
-                    .reduce((sum, expense) => sum + expense.amount, 0)
-                    .toFixed(2)}
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <TrendingUp className="h-8 w-8 text-purple-600" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <TrendingUp className="h-8 w-8 text-purple-600" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-muted-foreground truncate">
+                    Number of Expenses
+                  </dt>
+                  <dd className="text-lg font-medium">{expenses.length}</dd>
+                </dl>
+              </div>
             </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt className="text-sm font-medium text-gray-500 dark:text-gray-300 truncate">
-                  Number of Expenses
-                </dt>
-                <dd className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                  {expenses.length}
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
-          <div className="flex items-center space-x-4">
-            <Filter className="h-5 w-5 text-gray-400" />
-            <div className="flex space-x-2">
-              {(["all", "month", "week"] as const).map((filterOption) => (
-                <button
-                  key={filterOption}
-                  onClick={() => setFilter(filterOption)}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                    filter === filterOption
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-300"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"
-                  }`}
-                >
-                  {filterOption === "all"
-                    ? "All Time"
-                    : filterOption === "month"
-                    ? "This Month"
-                    : "Last 7 Days"}
-                </button>
-              ))}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+            <div className="flex items-center space-x-4">
+              <Filter className="h-5 w-5 text-muted-foreground" />
+              <div className="flex space-x-2">
+                {(["all", "month", "week"] as const).map((filterOption) => (
+                  <Button
+                    key={filterOption}
+                    variant={filter === filterOption ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setFilter(filterOption)}
+                  >
+                    {filterOption === "all"
+                      ? "All Time"
+                      : filterOption === "month"
+                      ? "This Month"
+                      : "Last 7 Days"}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {EXPENSE_CATEGORIES.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-
-          <div className="flex items-center space-x-2">
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="all">All Categories</option>
-              {EXPENSE_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Recent Expenses */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <Card>
+        <CardHeader>
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-              Recent Expenses
-            </h2>
-            <Link
-              href="/expenses/new"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              Add New Expense
-            </Link>
+            <CardTitle>Recent Expenses</CardTitle>
+            <Button asChild>
+              <Link href="/expenses/new">Add New Expense</Link>
+            </Button>
           </div>
-        </div>
+        </CardHeader>
 
-        <div className="overflow-hidden">
+        <CardContent className="p-0">
           {expenses.length === 0 ? (
             <div className="text-center py-12">
-              <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-                No expenses found
-              </h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <DollarSign className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-2 text-sm font-medium">No expenses found</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Get started by adding your first expense.
               </p>
               <div className="mt-6">
-                <Link
-                  href="/expenses/new"
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  Add Expense
-                </Link>
+                <Button asChild>
+                  <Link href="/expenses/new">Add Expense</Link>
+                </Button>
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-900">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Category
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Description
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Amount
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {expenses.slice(0, 10).map((expense) => (
-                    <tr
-                      key={expense.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {format(new Date(expense.date), "MMM dd, yyyy")}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                          {expense.category}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                        {expense.description || "No description"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                        ${expense.amount.toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {expenses.slice(0, 10).map((expense) => (
+                  <TableRow key={expense.id}>
+                    <TableCell>
+                      {format(new Date(expense.date), "MMM dd, yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{expense.category}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {expense.description || "No description"}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      ${expense.amount.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+
+          {expenses.length > 10 && (
+            <div className="px-6 py-3 border-t text-center">
+              <p className="text-sm text-muted-foreground">
+                Showing 10 of {expenses.length} expenses
+              </p>
             </div>
           )}
-        </div>
-
-        {expenses.length > 10 && (
-          <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Showing 10 of {expenses.length} expenses
-            </p>
-          </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
