@@ -5,11 +5,27 @@ interface FundTransaction {
   id: string;
   user_id: string;
   admin_id: string | null;
-  type: string;
+  transaction_type: string;
   amount: number;
   new_balance: number;
   description: string | null;
   created_at: string;
+}
+
+interface TransformedTransaction {
+  transaction_id: string;
+  user_id: string;
+  admin_id: string | null;
+  transaction_type: string;
+  amount: number;
+  new_balance: number;
+  description: string | null;
+  created_at: string;
+  username: string;
+  admin_username: string | null;
+  sender: string;
+  recipient: string;
+  display_type: string;
 }
 
 export async function GET(req: NextRequest) {
@@ -50,14 +66,17 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("fund_transactions")
-      .select("*")
+      .select(
+        "id, user_id, admin_id, transaction_type, amount, new_balance, description, created_at"
+      )
       .order("created_at", { ascending: false });
 
-    // If not admin or not requesting all users, filter by current user
-    if (!isAdmin || !allUsers) {
-      query = query.eq("user_id", user.id);
+    // Filter transactions based on view mode
+    if (!allUsers || !isAdmin) {
+      // "My Transactions" mode: Show transactions where user is involved as sender OR recipient
+      query = query.or(`user_id.eq.${user.id},admin_id.eq.${user.id}`);
     } else if (isAdmin && allUsers) {
-      // For admin viewing all users, only show transactions for users they created
+      // "All Users" mode: For admin viewing all users, show transactions for users they created
       const { data: adminUsers } = await supabase
         .from("users")
         .select("id")
@@ -82,6 +101,9 @@ export async function GET(req: NextRequest) {
       query = query.lte("created_at", `${dateTo}T23:59:59.999Z`);
     }
 
+    // Filter out expense transactions - only show fund transfers
+    query = query.not("transaction_type", "eq", "expense");
+
     const { data: transactions, error } = await query;
 
     if (error) {
@@ -92,20 +114,134 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Transform the data to match the expected format for the frontend
+    // Get all unique user IDs for username lookup
+    const userIds = new Set<string>();
+    const adminIds = new Set<string>();
+
+    transactions?.forEach((transaction) => {
+      if (transaction.user_id) userIds.add(transaction.user_id);
+      if (transaction.admin_id) adminIds.add(transaction.admin_id);
+    });
+
+    const allUserIds = Array.from(new Set([...userIds, ...adminIds]));
+
+    // Fetch usernames for all involved users
+    const { data: users } = await supabase
+      .from("users")
+      .select("id, username")
+      .in("id", allUserIds);
+
+    const usernameMap = new Map<string, string>();
+    users?.forEach((u) => {
+      usernameMap.set(u.id, u.username);
+    });
+
+    // Transform transactions with proper sender/recipient logic
     const transformedTransactions =
-      transactions?.map((transaction: FundTransaction) => ({
-        transaction_id: transaction.id,
-        user_id: transaction.user_id,
-        admin_id: transaction.admin_id,
-        transaction_type: transaction.type,
-        amount: transaction.amount,
-        new_balance: transaction.new_balance,
-        description: transaction.description,
-        created_at: transaction.created_at,
-        username: "User", // Simplified for now - could be enhanced to fetch actual usernames
-        admin_username: transaction.admin_id ? "Admin" : null,
-      })) || [];
+      transactions?.map((transaction: FundTransaction) => {
+        const isCurrentUserTheRecipient = transaction.user_id === user.id;
+        const isCurrentUserTheSender = transaction.admin_id === user.id;
+
+        let sender = "System";
+        let recipient = "Unknown";
+        let display_type = "credit";
+
+        // Determine sender and recipient based on transaction type
+        if (
+          transaction.transaction_type === "fund_in" ||
+          transaction.transaction_type === "deposit"
+        ) {
+          // Money coming in
+          if (transaction.admin_id) {
+            sender = usernameMap.get(transaction.admin_id) || "Unknown Admin";
+          } else {
+            sender = "System"; // Self top-up
+          }
+          recipient = usernameMap.get(transaction.user_id) || "Unknown User";
+
+          // Determine display type from current user's perspective
+          if (isCurrentUserTheRecipient) {
+            display_type = "credit";
+            sender = transaction.admin_id
+              ? usernameMap.get(transaction.admin_id) || "Admin"
+              : "System";
+            recipient = "You";
+          } else if (isCurrentUserTheSender) {
+            display_type = "debit";
+            sender = "You";
+            recipient = usernameMap.get(transaction.user_id) || "Unknown User";
+          } else {
+            display_type = "credit";
+            recipient = usernameMap.get(transaction.user_id) || "User";
+          }
+        } else if (
+          transaction.transaction_type === "fund_out" ||
+          transaction.transaction_type === "withdrawal"
+        ) {
+          // Money going out - user_id is always the sender
+          sender = usernameMap.get(transaction.user_id) || "Unknown User";
+
+          if (transaction.transaction_type === "fund_out") {
+            // fund_out: user_id → admin_id
+            recipient = transaction.admin_id
+              ? usernameMap.get(transaction.admin_id) || "Unknown Admin"
+              : "System";
+          } else {
+            // withdrawal: user_id → System
+            recipient = "System";
+          }
+
+          // Determine display type from current user's perspective
+          if (isCurrentUserTheSender) {
+            // Current user is the sender (user_id)
+            display_type = "debit";
+            sender = "You";
+            recipient =
+              transaction.transaction_type === "fund_out"
+                ? transaction.admin_id
+                  ? usernameMap.get(transaction.admin_id) || "Admin"
+                  : "System"
+                : "System";
+          } else if (
+            isCurrentUserTheRecipient &&
+            transaction.transaction_type === "fund_out" &&
+            transaction.admin_id === user.id
+          ) {
+            // Current user is the recipient (admin_id) in fund_out transaction
+            display_type = "credit";
+            sender = usernameMap.get(transaction.user_id) || "User";
+            recipient = "You";
+          } else {
+            // Current user is viewing someone else's transaction
+            display_type = "debit";
+            sender = usernameMap.get(transaction.user_id) || "User";
+            recipient =
+              transaction.transaction_type === "fund_out"
+                ? transaction.admin_id
+                  ? usernameMap.get(transaction.admin_id) || "Admin"
+                  : "System"
+                : "System";
+          }
+        }
+
+        return {
+          transaction_id: transaction.id,
+          user_id: transaction.user_id,
+          admin_id: transaction.admin_id,
+          transaction_type: transaction.transaction_type,
+          amount: transaction.amount,
+          new_balance: transaction.new_balance,
+          description: transaction.description,
+          created_at: transaction.created_at,
+          username: usernameMap.get(transaction.user_id) || "Unknown User",
+          admin_username: transaction.admin_id
+            ? usernameMap.get(transaction.admin_id) || "Unknown Admin"
+            : null,
+          sender,
+          recipient,
+          display_type,
+        };
+      }) || [];
 
     return NextResponse.json({ transactions: transformedTransactions });
   } catch (error) {

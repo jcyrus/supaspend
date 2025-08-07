@@ -143,6 +143,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- =============================================================================
 -- FUND MANAGEMENT FUNCTIONS
 -- =============================================================================
+-- Enhanced fund management with proper admin balance deduction:
+-- 1. Admin → User: Deducts admin balance, creates debit/credit transactions
+-- 2. Admin → Self: Credits admin balance from "System" (no deduction)
+-- 3. Validates admin has sufficient balance before transfers
+-- 4. Creates complete audit trail for all fund movements
 
 -- Function to initialize user balance
 CREATE OR REPLACE FUNCTION public.initialize_user_balance(target_user_id UUID)
@@ -181,7 +186,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to add funds to user (admin deposits money to user)
+-- Function to add funds to user with proper admin balance deduction
 CREATE OR REPLACE FUNCTION public.add_user_funds(
   target_user_id UUID,
   amount NUMERIC,
@@ -192,7 +197,10 @@ RETURNS TEXT AS $$
 DECLARE
   previous_balance NUMERIC(10,2);
   new_balance NUMERIC(10,2);
+  admin_previous_balance NUMERIC(10,2);
+  admin_new_balance NUMERIC(10,2);
   admin_role user_role;
+  is_self_funding BOOLEAN;
 BEGIN
   -- Check if admin has permission
   SELECT role INTO admin_role
@@ -207,9 +215,9 @@ BEGIN
   IF admin_role = 'admin' THEN
     IF NOT EXISTS (
       SELECT 1 FROM public.users 
-      WHERE id = target_user_id AND created_by = admin_user_id
+      WHERE id = target_user_id AND (created_by = admin_user_id OR id = admin_user_id)
     ) THEN
-      RETURN 'Error: You can only manage users you created';
+      RETURN 'Error: You can only manage users you created or yourself';
     END IF;
   END IF;
   
@@ -218,20 +226,68 @@ BEGIN
     RETURN 'Error: Amount must be positive';
   END IF;
   
-  -- Get current balance (for transaction record)
+  -- Check if this is self-funding (admin adding to their own balance)
+  is_self_funding := (target_user_id = admin_user_id);
+  
+  -- Get current balances
   previous_balance := public.get_user_balance(target_user_id);
   new_balance := previous_balance + amount;
-
-  -- Record transaction (balance is now calculated from transactions)
+  
+  IF NOT is_self_funding THEN
+    -- Admin funding another user - check admin has sufficient balance
+    admin_previous_balance := public.get_user_balance(admin_user_id);
+    
+    IF admin_previous_balance < amount THEN
+      RETURN 'Error: Insufficient admin balance. Current balance: $' || admin_previous_balance || ', Required: $' || amount;
+    END IF;
+    
+    admin_new_balance := admin_previous_balance - amount;
+    
+    -- Create debit transaction for admin (admin losing money)
+    INSERT INTO public.fund_transactions (
+      user_id, admin_id, transaction_type, amount,
+      previous_balance, new_balance, description
+    ) VALUES (
+      admin_user_id, admin_user_id, 'fund_out', amount,
+      admin_previous_balance, admin_new_balance, 
+      'Transfer to ' || COALESCE(
+        (SELECT username FROM public.users WHERE id = target_user_id),
+        'User ' || target_user_id::text
+      )
+    );
+  END IF;
+  
+  -- Create credit transaction for recipient (user receiving money)
   INSERT INTO public.fund_transactions (
     user_id, admin_id, transaction_type, amount,
     previous_balance, new_balance, description
   ) VALUES (
-    target_user_id, admin_user_id, 'fund_in', amount,
-    previous_balance, new_balance, description
+    target_user_id, 
+    CASE WHEN is_self_funding THEN NULL ELSE admin_user_id END, -- NULL admin_id for self-funding means "System"
+    'fund_in', 
+    amount,
+    previous_balance, 
+    new_balance, 
+    CASE WHEN is_self_funding THEN COALESCE(description, 'Self top-up') ELSE COALESCE(description, 'Fund transfer') END
   );
   
-  RETURN 'Success: Added $' || amount || ' to user balance';
+  IF is_self_funding THEN
+    RETURN 'Success: Added $' || amount || ' to your balance (Self top-up)';
+  ELSE
+    RETURN 'Success: Transferred $' || amount || ' from your balance to ' || (SELECT username FROM public.users WHERE id = target_user_id);
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function for self-funding (cleaner interface for admin self top-ups)
+CREATE OR REPLACE FUNCTION public.self_fund_balance(
+  admin_user_id UUID,
+  amount NUMERIC,
+  description TEXT DEFAULT 'Self top-up'
+)
+RETURNS TEXT AS $$
+BEGIN
+  RETURN public.add_user_funds(admin_user_id, amount, admin_user_id, description);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -803,6 +859,7 @@ GRANT EXECUTE ON FUNCTION public.promote_to_superadmin(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.initialize_user_balance(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_user_balance(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.add_user_funds(UUID, NUMERIC, UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.self_fund_balance(UUID, NUMERIC, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.deduct_user_funds(UUID, NUMERIC, UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_admin_users_with_balances(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_user_fund_transactions(UUID, INTEGER) TO authenticated;
@@ -834,9 +891,11 @@ BEGIN
   RAISE NOTICE '💰 FEATURES ENABLED:';
   RAISE NOTICE '• Complete expense tracking with edit history';
   RAISE NOTICE '• Fund management with automatic balance deduction';
+  RAISE NOTICE '• Admin balance deduction when funding users';
+  RAISE NOTICE '• Self-funding with system credit tracking';
   RAISE NOTICE '• Admin-controlled user creation and management';
   RAISE NOTICE '• Transaction history with complete audit trails';
   RAISE NOTICE '• Role-based access control (user/admin/superadmin)';
   RAISE NOTICE '';
-  RAISE NOTICE '🚀 Your complete expense management system is ready!';
+  RAISE NOTICE '🚀 Your complete petty cash management system is ready!';
 END $$;
