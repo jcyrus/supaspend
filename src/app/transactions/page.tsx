@@ -94,6 +94,74 @@ export default function TransactionsPage() {
     maxAmount: "",
   });
 
+  const [tempFilter, setTempFilter] = useState<{
+    dateFrom: string;
+    dateTo: string;
+    category: string;
+    minAmount: string;
+    maxAmount: string;
+  }>({
+    dateFrom: "",
+    dateTo: "",
+    category: "all",
+    minAmount: "",
+    maxAmount: "",
+  });
+
+  // Initialize and sync tempFilter when filter changes
+  useEffect(() => {
+    setTempFilter(filter);
+  }, [filter]);
+
+  // Quick date selector functions
+  const setQuickDateFilter = (period: "today" | "week" | "month") => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const date = today.getDate();
+
+    let dateFrom = "";
+    let dateTo = "";
+
+    switch (period) {
+      case "today":
+        dateFrom = dateTo = today.toISOString().split("T")[0];
+        break;
+      case "week":
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(date - today.getDay()); // Start of week (Sunday)
+        const endOfWeek = new Date(today);
+        endOfWeek.setDate(date + (6 - today.getDay())); // End of week (Saturday)
+        dateFrom = startOfWeek.toISOString().split("T")[0];
+        dateTo = endOfWeek.toISOString().split("T")[0];
+        break;
+      case "month":
+        const startOfMonth = new Date(year, month, 1);
+        const endOfMonth = new Date(year, month + 1, 0);
+        dateFrom = startOfMonth.toISOString().split("T")[0];
+        dateTo = endOfMonth.toISOString().split("T")[0];
+        break;
+    }
+
+    setTempFilter({ ...tempFilter, dateFrom, dateTo });
+  };
+
+  const applyFilters = () => {
+    setFilter({ ...tempFilter });
+  };
+
+  const clearFilters = () => {
+    const clearedFilter = {
+      dateFrom: "",
+      dateTo: "",
+      category: "all",
+      minAmount: "",
+      maxAmount: "",
+    };
+    setTempFilter(clearedFilter);
+    setFilter(clearedFilter);
+  };
+
   const fetchExpenses = useCallback(async () => {
     try {
       setLoading(true);
@@ -261,19 +329,6 @@ export default function TransactionsPage() {
     }).format(amount);
   };
 
-  const getTransactionTypeColor = (type: string) => {
-    switch (type) {
-      case "deposit":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      case "expense":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      case "withdrawal":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
-    }
-  };
-
   useEffect(() => {
     const checkAccess = async () => {
       const currentUser = await getCurrentUser();
@@ -290,7 +345,7 @@ export default function TransactionsPage() {
     };
 
     checkAccess();
-  }, [router, viewMode, fetchExpenses, fetchFundTransactions]);
+  }, [router, viewMode, fetchExpenses, fetchFundTransactions, filter]);
 
   useEffect(() => {
     if (viewMode === "expenses") {
@@ -315,7 +370,7 @@ export default function TransactionsPage() {
         <div>
           <h1 className="text-2xl font-semibold">All Transactions</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            View and manage all your transactions with complete edit history
+            View and manage expenses and fund transfers with complete history
           </p>
         </div>
 
@@ -360,15 +415,43 @@ export default function TransactionsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="px-6">
+          {/* Quick Date Selectors */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setQuickDateFilter("today")}
+            >
+              Today
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setQuickDateFilter("week")}
+            >
+              This Week
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setQuickDateFilter("month")}
+            >
+              This Month
+            </Button>
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              Clear All
+            </Button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dateFrom">From Date</Label>
               <Input
                 id="dateFrom"
                 type="date"
-                value={filter.dateFrom}
+                value={tempFilter.dateFrom}
                 onChange={(e) =>
-                  setFilter({ ...filter, dateFrom: e.target.value })
+                  setTempFilter({ ...tempFilter, dateFrom: e.target.value })
                 }
               />
             </div>
@@ -378,9 +461,9 @@ export default function TransactionsPage() {
               <Input
                 id="dateTo"
                 type="date"
-                value={filter.dateTo}
+                value={tempFilter.dateTo}
                 onChange={(e) =>
-                  setFilter({ ...filter, dateTo: e.target.value })
+                  setTempFilter({ ...tempFilter, dateTo: e.target.value })
                 }
               />
             </div>
@@ -389,9 +472,9 @@ export default function TransactionsPage() {
               <div className="space-y-2">
                 <Label>Category</Label>
                 <Select
-                  value={filter.category}
+                  value={tempFilter.category}
                   onValueChange={(value) =>
-                    setFilter({ ...filter, category: value })
+                    setTempFilter({ ...tempFilter, category: value })
                   }
                 >
                   <SelectTrigger>
@@ -415,9 +498,9 @@ export default function TransactionsPage() {
                 id="minAmount"
                 type="number"
                 step="0.01"
-                value={filter.minAmount}
+                value={tempFilter.minAmount}
                 onChange={(e) =>
-                  setFilter({ ...filter, minAmount: e.target.value })
+                  setTempFilter({ ...tempFilter, minAmount: e.target.value })
                 }
                 placeholder="0.00"
               />
@@ -429,13 +512,21 @@ export default function TransactionsPage() {
                 id="maxAmount"
                 type="number"
                 step="0.01"
-                value={filter.maxAmount}
+                value={tempFilter.maxAmount}
                 onChange={(e) =>
-                  setFilter({ ...filter, maxAmount: e.target.value })
+                  setTempFilter({ ...tempFilter, maxAmount: e.target.value })
                 }
                 placeholder="0.00"
               />
             </div>
+          </div>
+
+          {/* Filter Actions */}
+          <div className="flex justify-end mt-4 space-x-2">
+            <Button variant="outline" onClick={clearFilters}>
+              Clear
+            </Button>
+            <Button onClick={applyFilters}>Apply Filters</Button>
           </div>
         </CardContent>
       </Card>
@@ -447,7 +538,7 @@ export default function TransactionsPage() {
             <Filter className="h-5 w-5 mr-2" />
             {viewMode === "expenses"
               ? "Expense Transactions"
-              : "Fund Transactions"}{" "}
+              : "Fund Transfers"}{" "}
             (
             {viewMode === "expenses"
               ? expenses.length
@@ -645,12 +736,12 @@ export default function TransactionsPage() {
           ) : // Fund Transactions Table
           fundTransactions.length === 0 ? (
             <div className="text-center py-12">
-              <History className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+              <History className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-2 text-sm font-medium">
                 No fund transactions found
               </h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                No fund transactions match your current filters.
+              <p className="mt-1 text-sm text-muted-foreground">
+                No fund transfers match your current filters.
               </p>
             </div>
           ) : (
@@ -667,7 +758,13 @@ export default function TransactionsPage() {
                       </th>
                     )}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Type
+                      Sender
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Recipient
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Transaction Type
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Description
@@ -694,16 +791,26 @@ export default function TransactionsPage() {
                       </td>
                       {showAllUsers && (
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                          {transaction.admin_username || "System"}
+                          {transaction.username || "Unknown User"}
                         </td>
                       )}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {transaction.sender}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {transaction.recipient}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTransactionTypeColor(
-                            transaction.transaction_type
-                          )}`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            transaction.display_type === "credit"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                          }`}
                         >
-                          {transaction.transaction_type}
+                          {transaction.display_type === "credit"
+                            ? "Credit"
+                            : "Debit"}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
@@ -712,14 +819,12 @@ export default function TransactionsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <span
                           className={
-                            transaction.transaction_type === "deposit"
+                            transaction.display_type === "credit"
                               ? "text-green-600 dark:text-green-400"
                               : "text-red-600 dark:text-red-400"
                           }
                         >
-                          {transaction.transaction_type === "deposit"
-                            ? "+"
-                            : "-"}
+                          {transaction.display_type === "credit" ? "+" : "-"}
                           {formatCurrency(transaction.amount)}
                         </span>
                       </td>

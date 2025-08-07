@@ -1,5 +1,10 @@
 export type UserRole = "user" | "admin" | "superadmin";
-export type TransactionType = "deposit" | "withdrawal" | "expense";
+export type TransactionType =
+  | "fund_in"
+  | "fund_out"
+  | "expense"
+  | "deposit"
+  | "withdrawal";
 
 export interface Database {
   public: {
@@ -164,6 +169,10 @@ export interface FundTransactionHistory {
   new_balance: number;
   description: string | null;
   admin_username: string | null;
+  username: string;
+  sender: string;
+  recipient: string;
+  display_type: string;
   created_at: string;
 }
 

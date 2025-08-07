@@ -59,7 +59,7 @@ export function useCurrentAdmin() {
         user_id: currentUser.id,
         username: currentUser.profile.username,
         email: currentUser.email || "",
-        balance: Number(balanceData.balance) || 0,
+        balance: Number(balanceData.data?.balance) || 0,
         role: currentUser.profile.role,
       };
 
