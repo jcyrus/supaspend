@@ -101,6 +101,9 @@ export async function GET(req: NextRequest) {
       query = query.lte("created_at", `${dateTo}T23:59:59.999Z`);
     }
 
+    // Filter out expense transactions - only show fund transfers
+    query = query.not("transaction_type", "eq", "expense");
+
     const { data: transactions, error } = await query;
 
     if (error) {
@@ -175,27 +178,49 @@ export async function GET(req: NextRequest) {
           transaction.transaction_type === "fund_out" ||
           transaction.transaction_type === "withdrawal"
         ) {
-          // Money going out
+          // Money going out - user_id is always the sender
           sender = usernameMap.get(transaction.user_id) || "Unknown User";
-          if (transaction.admin_id) {
-            recipient =
-              usernameMap.get(transaction.admin_id) || "Unknown Admin";
+
+          if (transaction.transaction_type === "fund_out") {
+            // fund_out: user_id → admin_id
+            recipient = transaction.admin_id
+              ? usernameMap.get(transaction.admin_id) || "Unknown Admin"
+              : "System";
           } else {
+            // withdrawal: user_id → System
             recipient = "System";
           }
 
           // Determine display type from current user's perspective
-          if (isCurrentUserTheRecipient) {
+          if (isCurrentUserTheSender) {
+            // Current user is the sender (user_id)
+            display_type = "debit";
+            sender = "You";
+            recipient =
+              transaction.transaction_type === "fund_out"
+                ? transaction.admin_id
+                  ? usernameMap.get(transaction.admin_id) || "Admin"
+                  : "System"
+                : "System";
+          } else if (
+            isCurrentUserTheRecipient &&
+            transaction.transaction_type === "fund_out" &&
+            transaction.admin_id === user.id
+          ) {
+            // Current user is the recipient (admin_id) in fund_out transaction
             display_type = "credit";
             sender = usernameMap.get(transaction.user_id) || "User";
             recipient = "You";
-          } else if (isCurrentUserTheSender) {
-            display_type = "debit";
-            sender = "You";
-            recipient = usernameMap.get(transaction.user_id) || "User";
           } else {
+            // Current user is viewing someone else's transaction
             display_type = "debit";
             sender = usernameMap.get(transaction.user_id) || "User";
+            recipient =
+              transaction.transaction_type === "fund_out"
+                ? transaction.admin_id
+                  ? usernameMap.get(transaction.admin_id) || "Admin"
+                  : "System"
+                : "System";
           }
         }
 

@@ -249,7 +249,11 @@ BEGIN
       previous_balance, new_balance, description
     ) VALUES (
       admin_user_id, admin_user_id, 'fund_out', amount,
-      admin_previous_balance, admin_new_balance, 'Transfer to ' || (SELECT username FROM public.users WHERE id = target_user_id)
+      admin_previous_balance, admin_new_balance, 
+      'Transfer to ' || COALESCE(
+        (SELECT username FROM public.users WHERE id = target_user_id),
+        'User ' || target_user_id::text
+      )
     );
   END IF;
   
