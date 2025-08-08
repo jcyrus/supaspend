@@ -6,9 +6,40 @@ export type TransactionType =
   | "deposit"
   | "withdrawal";
 
+export type Currency = "USD" | "VND" | "IDR" | "PHP";
+
 export interface Database {
   public: {
     Tables: {
+      wallets: {
+        Row: {
+          id: string;
+          user_id: string;
+          currency: Currency;
+          name: string;
+          is_default: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          currency: Currency;
+          name: string;
+          is_default?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          currency?: Currency;
+          name?: string;
+          is_default?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       users: {
         Row: {
           id: string;
@@ -39,6 +70,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          wallet_id: string;
           date: string;
           amount: number;
           category: string;
@@ -49,6 +81,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
+          wallet_id: string;
           date: string;
           amount: number;
           category: string;
@@ -59,6 +92,7 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
+          wallet_id?: string;
           date?: string;
           amount?: number;
           category?: string;
@@ -71,6 +105,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          wallet_id: string;
           balance: number;
           created_at: string;
           updated_at: string;
@@ -78,6 +113,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
+          wallet_id: string;
           balance?: number;
           created_at?: string;
           updated_at?: string;
@@ -85,6 +121,7 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
+          wallet_id?: string;
           balance?: number;
           created_at?: string;
           updated_at?: string;
@@ -94,6 +131,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          wallet_id: string;
           admin_id: string | null;
           transaction_type: TransactionType;
           amount: number;
@@ -106,6 +144,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
+          wallet_id: string;
           admin_id?: string | null;
           transaction_type: TransactionType;
           amount: number;
@@ -118,6 +157,7 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
+          wallet_id?: string;
           admin_id?: string | null;
           transaction_type?: TransactionType;
           amount?: number;
@@ -133,6 +173,9 @@ export interface Database {
 }
 
 export type User = Database["public"]["Tables"]["users"]["Row"];
+export type Wallet = Database["public"]["Tables"]["wallets"]["Row"];
+export type WalletInsert = Database["public"]["Tables"]["wallets"]["Insert"];
+export type WalletUpdate = Database["public"]["Tables"]["wallets"]["Update"];
 export type Expense = Database["public"]["Tables"]["expenses"]["Row"];
 export type ExpenseInsert = Database["public"]["Tables"]["expenses"]["Insert"];
 export type ExpenseUpdate = Database["public"]["Tables"]["expenses"]["Update"];
@@ -150,6 +193,8 @@ export interface AdminUserExpense {
   category: string;
   description: string | null;
   created_at: string;
+  wallet_id: string;
+  currency: Currency;
 }
 
 export interface UserWithBalance {
@@ -159,6 +204,13 @@ export interface UserWithBalance {
   balance: number;
   created_at: string;
   email: string;
+  wallets: Array<{
+    id: string;
+    currency: Currency;
+    name: string;
+    is_default: boolean;
+    balance: number;
+  }>;
 }
 
 export interface FundTransactionHistory {

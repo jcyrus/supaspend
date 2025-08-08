@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get("category");
     const minAmount = searchParams.get("minAmount");
     const maxAmount = searchParams.get("maxAmount");
+    const walletId = searchParams.get("walletId");
 
     // Use server-side auth
     const { supabase } = createClient(req);
@@ -42,7 +43,12 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("expenses")
-      .select("*")
+      .select(
+        `
+        *,
+        wallet:wallets(id, name, currency)
+      `
+      )
       .order("date", { ascending: false });
 
     // If not admin or not requesting all users, filter by current user
@@ -81,6 +87,9 @@ export async function GET(req: NextRequest) {
     }
     if (maxAmount) {
       query = query.lte("amount", parseFloat(maxAmount));
+    }
+    if (walletId && walletId !== "all") {
+      query = query.eq("wallet_id", walletId);
     }
 
     const { data: expenses, error } = await query;

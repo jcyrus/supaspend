@@ -21,6 +21,7 @@ interface UserTableRowProps {
   onFund: () => void;
   onViewHistory: () => void;
   onDelete: () => void;
+  onManageWallets: () => void;
 }
 
 export function UserTableRow({
@@ -28,6 +29,7 @@ export function UserTableRow({
   onFund,
   onViewHistory,
   onDelete,
+  onManageWallets,
 }: UserTableRowProps) {
   return (
     <TableRow className="hover:bg-muted/50">
@@ -76,6 +78,15 @@ export function UserTableRow({
       </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end space-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onManageWallets}
+            className="text-purple-600 hover:text-purple-900 hover:bg-purple-50"
+            title="Manage wallets"
+          >
+            <Wallet className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"

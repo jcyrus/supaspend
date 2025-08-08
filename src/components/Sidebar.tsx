@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Plus, BarChart3, Users, History } from "lucide-react";
+import { Home, Plus, BarChart3, Users, History, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "@/lib/auth-utils";
 import {
@@ -12,9 +12,8 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
+  SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import Image from "next/image";
 
@@ -35,6 +34,7 @@ export default function AppSidebar() {
 
   const baseNavItems = [
     { href: "/dashboard", label: "Dashboard", icon: Home },
+    { href: "/wallets", label: "My Wallets", icon: Wallet },
     { href: "/transactions", label: "Transactions", icon: History },
     { href: "/reports", label: "Reports", icon: BarChart3 },
   ];
