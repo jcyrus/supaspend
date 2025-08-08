@@ -10,13 +10,26 @@ import {
   Filter,
   Wallet,
   AlertTriangle,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
-import type { Expense } from "@/types/database";
+import type { Expense, Currency, User } from "@/types/database";
+
+// Expense with wallet information
+type ExpenseWithWallet = Expense & {
+  wallet?: {
+    id: string;
+    name: string;
+    currency: Currency;
+  };
+};
 import { EXPENSE_CATEGORIES } from "@/types/database";
 import { getCurrentUser } from "@/lib/auth-utils";
-import { useBalance } from "@/hooks/useBalance";
-import { formatCurrency, getBalanceColor } from "@/lib/utils/currency";
+import { useWallets, useWalletBalances } from "@/hooks/api/useWallets";
+import {
+  formatCurrencyWithSymbol,
+  getBalanceColor,
+} from "@/lib/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -38,35 +51,59 @@ import {
 
 export default function DashboardContent() {
   const supabase = createClient();
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseWithWallet[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "month" | "week">("month");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const { balance, loading: balanceLoading } = useBalance();
+  const [selectedWalletId, setSelectedWalletId] = useState<string>("all");
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    email?: string;
+    profile: User;
+  } | null>(null);
+
+  // Load wallets for current user
+  const { wallets, loading: walletsLoading } = useWallets(currentUser?.id);
+  const { balances, loading: balancesLoading } = useWalletBalances(wallets);
+
+  // Calculate total balance across all wallets
+  const totalBalance = Object.values(balances).reduce(
+    (sum, balance) => sum + balance,
+    0
+  );
+  const selectedWallet = wallets.find((w) => w.id === selectedWalletId);
+  const selectedWalletBalance =
+    selectedWalletId === "all" ? totalBalance : balances[selectedWalletId] || 0;
 
   const fetchExpenses = useCallback(async () => {
     try {
       setLoading(true);
 
       // Use enhanced getCurrentUser function that creates profile if missing
-      const currentUser = await getCurrentUser();
+      const user = await getCurrentUser();
+      setCurrentUser(user);
 
-      if (!currentUser?.profile) {
+      if (!user?.profile) {
         console.error("No user or user profile found");
         setExpenses([]);
         return;
       }
 
       console.log("Fetching expenses for user:", {
-        id: currentUser.id,
-        email: currentUser.email,
-        role: currentUser.profile.role,
+        id: user.id,
+        email: user.email,
+        role: user.profile.role,
       });
 
       let query = supabase
         .from("expenses")
-        .select("*")
-        .eq("user_id", currentUser.id)
+        .select(
+          `
+          *,
+          wallet:wallets(id, currency, name)
+        `
+        )
+        .eq("user_id", user.id)
         .order("date", { ascending: false });
 
       // Apply date filter
@@ -87,6 +124,11 @@ export default function DashboardContent() {
         query = query.eq("category", categoryFilter);
       }
 
+      // Apply wallet filter
+      if (selectedWalletId !== "all") {
+        query = query.eq("wallet_id", selectedWalletId);
+      }
+
       const { data, error } = await query;
 
       if (error) {
@@ -97,8 +139,12 @@ export default function DashboardContent() {
           details: error.details,
           hint: error.hint,
         });
-        console.error("User ID:", currentUser.id);
-        console.error("Query filters:", { filter, categoryFilter });
+        console.error("User ID:", user.id);
+        console.error("Query filters:", {
+          filter,
+          categoryFilter,
+          selectedWalletId,
+        });
         throw error;
       }
 
@@ -116,7 +162,7 @@ export default function DashboardContent() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, filter, categoryFilter]);
+  }, [supabase, filter, categoryFilter, selectedWalletId]);
 
   useEffect(() => {
     fetchExpenses();
@@ -178,19 +224,29 @@ export default function DashboardContent() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-muted-foreground truncate">
-                    Available Balance
+                    {selectedWalletId === "all"
+                      ? "Total Balance"
+                      : `${selectedWallet?.name || "Wallet"} Balance`}
                   </dt>
                   <dd
                     className={`text-lg font-medium ${getBalanceColor(
-                      balance
+                      selectedWalletBalance
                     )}`}
                   >
-                    {balanceLoading ? (
+                    {balancesLoading || walletsLoading ? (
                       <div className="animate-pulse h-6 bg-muted rounded w-20"></div>
                     ) : (
                       <>
-                        {formatCurrency(balance)}
-                        {balance < 0 && (
+                        {selectedWalletId === "all" || !selectedWallet
+                          ? formatCurrencyWithSymbol(
+                              selectedWalletBalance,
+                              "USD"
+                            )
+                          : formatCurrencyWithSymbol(
+                              selectedWalletBalance,
+                              selectedWallet.currency
+                            )}
+                        {selectedWalletBalance < 0 && (
                           <div className="flex items-center text-xs text-destructive mt-1">
                             <AlertTriangle className="h-3 w-3 mr-1" />
                             Negative
@@ -223,7 +279,12 @@ export default function DashboardContent() {
                     )
                   </dt>
                   <dd className="text-lg font-medium">
-                    ${totalAmount.toFixed(2)}
+                    {selectedWalletId === "all" || !selectedWallet
+                      ? formatCurrencyWithSymbol(totalAmount, "USD")
+                      : formatCurrencyWithSymbol(
+                          totalAmount,
+                          selectedWallet.currency
+                        )}
                   </dd>
                 </dl>
               </div>
@@ -243,10 +304,18 @@ export default function DashboardContent() {
                     This Month&apos;s Expenses
                   </dt>
                   <dd className="text-lg font-medium">
-                    $
-                    {thisMonthExpenses
-                      .reduce((sum, expense) => sum + expense.amount, 0)
-                      .toFixed(2)}
+                    {(() => {
+                      const monthlyTotal = thisMonthExpenses.reduce(
+                        (sum, expense) => sum + expense.amount,
+                        0
+                      );
+                      return selectedWalletId === "all" || !selectedWallet
+                        ? formatCurrencyWithSymbol(monthlyTotal, "USD")
+                        : formatCurrencyWithSymbol(
+                            monthlyTotal,
+                            selectedWallet.currency
+                          );
+                    })()}
                   </dd>
                 </dl>
               </div>
@@ -298,6 +367,35 @@ export default function DashboardContent() {
             </div>
 
             <div className="flex items-center space-x-2">
+              {/* Wallet Filter */}
+              <Select
+                value={selectedWalletId}
+                onValueChange={setSelectedWalletId}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="All Wallets" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Wallets</SelectItem>
+                  {wallets.map((wallet) => (
+                    <SelectItem key={wallet.id} value={wallet.id}>
+                      <div className="flex items-center space-x-2">
+                        <span>{wallet.name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {wallet.currency}
+                        </Badge>
+                        {wallet.is_default && (
+                          <Badge variant="secondary" className="text-xs">
+                            Default
+                          </Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Category Filter */}
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="All Categories" />
@@ -315,6 +413,66 @@ export default function DashboardContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Wallet Overview */}
+      {wallets.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center">
+                <Wallet className="h-5 w-5 mr-2" />
+                My Wallets
+              </CardTitle>
+              <Button asChild size="sm">
+                <Link href="/wallets">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Manage Wallets
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {wallets.map((wallet) => (
+                <Card
+                  key={wallet.id}
+                  className={`${
+                    wallet.is_default ? "ring-2 ring-primary" : ""
+                  }`}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-medium">{wallet.name}</h4>
+                        {wallet.is_default && (
+                          <Badge variant="secondary" className="text-xs">
+                            Default
+                          </Badge>
+                        )}
+                      </div>
+                      <Badge variant="outline">{wallet.currency}</Badge>
+                    </div>
+                    <div
+                      className={`text-lg font-semibold ${getBalanceColor(
+                        balances[wallet.id] || 0
+                      )}`}
+                    >
+                      {balancesLoading ? (
+                        <div className="animate-pulse h-6 bg-muted rounded w-20"></div>
+                      ) : (
+                        formatCurrencyWithSymbol(
+                          balances[wallet.id] || 0,
+                          wallet.currency
+                        )
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Expenses */}
       <Card>
@@ -348,6 +506,7 @@ export default function DashboardContent() {
                   <TableHead>Date</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead>Wallet</TableHead>
                   <TableHead>Amount</TableHead>
                 </TableRow>
               </TableHeader>
@@ -363,8 +522,32 @@ export default function DashboardContent() {
                     <TableCell>
                       {expense.description || "No description"}
                     </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const wallet = expense.wallet;
+                        return wallet ? (
+                          <div className="flex items-center space-x-1">
+                            <span className="text-sm">{wallet.name}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {wallet.currency}
+                            </Badge>
+                          </div>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">
+                            Unknown
+                          </Badge>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell className="font-medium">
-                      ${expense.amount.toFixed(2)}
+                      {(() => {
+                        const walletCurrency =
+                          expense.wallet?.currency || "USD";
+                        return formatCurrencyWithSymbol(
+                          expense.amount,
+                          walletCurrency
+                        );
+                      })()}
                     </TableCell>
                   </TableRow>
                 ))}

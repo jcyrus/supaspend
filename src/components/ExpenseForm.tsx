@@ -1,15 +1,19 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Save, ArrowLeft, Wallet, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { EXPENSE_CATEGORIES } from "@/types/database";
 import type { ExpenseInsert } from "@/types/database";
-import { useBalance } from "@/hooks/useBalance";
-import { formatCurrency, getBalanceColor } from "@/lib/utils/currency";
+import {
+  getBalanceColor,
+  formatCurrencyWithSymbol,
+} from "@/lib/utils/currency";
+import { WalletService } from "@/lib/services/wallet";
+import type { Wallet as WalletType } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,13 +31,47 @@ export default function ExpenseForm() {
   const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const { balance, loading: balanceLoading } = useBalance();
+  const [wallets, setWallets] = useState<
+    Array<WalletType & { balance: number }>
+  >([]);
+  const [selectedWalletId, setSelectedWalletId] = useState("");
+  const [walletsLoading, setWalletsLoading] = useState(true);
   const [formData, setFormData] = useState({
     date: format(new Date(), "yyyy-MM-dd"),
     amount: "",
     category: "",
     description: "",
   });
+
+  const loadUserWallets = useCallback(async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const userWallets = await WalletService.getUserWalletsWithBalances(
+        user.id
+      );
+      setWallets(userWallets);
+
+      // Auto-select default wallet
+      const defaultWallet = userWallets.find((w) => w.is_default);
+      if (defaultWallet) {
+        setSelectedWalletId(defaultWallet.id);
+      }
+    } catch (error) {
+      console.error("Error loading wallets:", error);
+    } finally {
+      setWalletsLoading(false);
+    }
+  }, [supabase.auth]);
+
+  useEffect(() => {
+    loadUserWallets();
+  }, [loadUserWallets]);
+
+  const selectedWallet = wallets.find((w) => w.id === selectedWalletId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,17 +86,24 @@ export default function ExpenseForm() {
         throw new Error("Not authenticated");
       }
 
+      if (!selectedWalletId || !selectedWallet) {
+        throw new Error("Please select a wallet");
+      }
+
       const expenseAmount = parseFloat(formData.amount);
 
       // Check if the expense would result in a negative balance beyond a reasonable limit
       // (We allow negative balances, but warn the user)
-      const newBalance = balance - expenseAmount;
+      const newBalance = selectedWallet.balance - expenseAmount;
       const showWarning = newBalance < -1000; // Warn if balance would go below -$1000
 
       if (showWarning) {
         const confirmed = confirm(
-          `This expense will bring your balance to ${formatCurrency(
-            newBalance
+          `This expense will bring your ${
+            selectedWallet.name
+          } balance to ${formatCurrencyWithSymbol(
+            newBalance,
+            selectedWallet.currency
           )}. ` +
             "Your balance will go significantly negative. Do you want to continue?"
         );
@@ -70,6 +115,7 @@ export default function ExpenseForm() {
 
       const expenseData: ExpenseInsert = {
         user_id: user.id,
+        wallet_id: selectedWalletId,
         date: formData.date,
         amount: expenseAmount,
         category: formData.category,
@@ -90,8 +136,9 @@ export default function ExpenseForm() {
   };
 
   const getNewBalancePreview = () => {
+    if (!selectedWallet) return 0;
     const amount = parseFloat(formData.amount) || 0;
-    return balance - amount;
+    return selectedWallet.balance - amount;
   };
 
   const handleChange = (
@@ -121,69 +168,145 @@ export default function ExpenseForm() {
         </p>
       </div>
 
-      {/* Balance Card */}
-      <Card className="mb-6">
-        <CardContent className="px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary/10 rounded-full">
-                <Wallet className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium">Available Balance</h3>
-                <p className="text-sm text-muted-foreground">
-                  Your current petty cash balance
-                </p>
-              </div>
+      {/* Wallet Selection & Balance Cards */}
+      {walletsLoading ? (
+        <Card className="mb-6">
+          <CardContent className="px-6">
+            <div className="animate-pulse">
+              <div className="h-6 w-32 bg-muted rounded mb-2"></div>
+              <div className="h-8 w-24 bg-muted rounded"></div>
             </div>
-            <div className="text-right">
-              {balanceLoading ? (
-                <div className="animate-pulse">
-                  <div className="h-8 w-24 bg-muted rounded"></div>
-                </div>
-              ) : (
-                <>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Wallet Selection */}
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle className="text-lg">Select Wallet</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {wallets.map((wallet) => (
                   <div
-                    className={`text-2xl font-bold ${getBalanceColor(balance)}`}
+                    key={wallet.id}
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                      selectedWalletId === wallet.id
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                    onClick={() => setSelectedWalletId(wallet.id)}
                   >
-                    {formatCurrency(balance)}
-                  </div>
-                  {balance < 0 && (
-                    <div className="flex items-center text-sm text-destructive mt-1">
-                      <AlertTriangle className="h-4 w-4 mr-1" />
-                      Negative Balance
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-primary/10 rounded-full">
+                          <Wallet className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <div className="font-medium">{wallet.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {wallet.currency}
+                            {wallet.is_default && (
+                              <span className="ml-2 bg-primary/10 text-primary text-xs px-2 py-1 rounded">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div
+                          className={`text-lg font-bold ${getBalanceColor(
+                            wallet.balance
+                          )}`}
+                        >
+                          {formatCurrencyWithSymbol(
+                            wallet.balance,
+                            wallet.currency
+                          )}
+                        </div>
+                        {wallet.balance < 0 && (
+                          <div className="flex items-center text-sm text-destructive mt-1">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Negative
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Balance Preview */}
-          {formData.amount && !isNaN(parseFloat(formData.amount)) && (
-            <div className="mt-4 pt-4 border-t">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  Balance after expense:
-                </span>
-                <span
-                  className={`font-medium ${getBalanceColor(
-                    getNewBalancePreview()
-                  )}`}
-                >
-                  {formatCurrency(getNewBalancePreview())}
-                </span>
-              </div>
-              {getNewBalancePreview() < -500 && (
-                <div className="flex items-center text-sm text-amber-600 dark:text-amber-400 mt-2">
-                  <AlertTriangle className="h-4 w-4 mr-1" />
-                  This will result in a significant negative balance
+          {selectedWallet && (
+            <Card className="mb-6">
+              <CardContent className="px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Current Balance:
+                    </span>
+                    <span
+                      className={`font-medium ${getBalanceColor(
+                        selectedWallet.balance
+                      )}`}
+                    >
+                      {formatCurrencyWithSymbol(
+                        selectedWallet.balance,
+                        selectedWallet.currency
+                      )}
+                    </span>
+                  </div>
+
+                  {formData.amount && !isNaN(parseFloat(formData.amount)) && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          Expense Amount:
+                        </span>
+                        <span className="font-medium text-destructive">
+                          -
+                          {formatCurrencyWithSymbol(
+                            parseFloat(formData.amount),
+                            selectedWallet.currency
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="border-t pt-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">
+                            Balance After Expense:
+                          </span>
+                          <span
+                            className={`font-bold ${getBalanceColor(
+                              getNewBalancePreview()
+                            )}`}
+                          >
+                            {formatCurrencyWithSymbol(
+                              getNewBalancePreview(),
+                              selectedWallet.currency
+                            )}
+                          </span>
+                        </div>
+
+                        {getNewBalancePreview() < -500 && (
+                          <div className="flex items-center text-sm text-amber-600 dark:text-amber-400 mt-2">
+                            <AlertTriangle className="h-4 w-4 mr-1" />
+                            This will result in a significant negative balance
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </>
+      )}
 
       {/* Form */}
       <Card>
@@ -204,7 +327,9 @@ export default function ExpenseForm() {
 
             {/* Amount */}
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount ($) *</Label>
+              <Label htmlFor="amount">
+                Amount {selectedWallet ? `(${selectedWallet.currency})` : ""} *
+              </Label>
               <Input
                 type="number"
                 id="amount"
@@ -260,7 +385,7 @@ export default function ExpenseForm() {
               <Button variant="outline" asChild>
                 <Link href="/dashboard">Cancel</Link>
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || !selectedWalletId}>
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

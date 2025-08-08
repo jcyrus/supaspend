@@ -6,6 +6,7 @@ import {
   errorResponse,
   successResponse,
 } from "@/lib/api-middleware";
+import type { Currency } from "@/types/database";
 
 export async function POST(request: NextRequest) {
   // Use middleware for authentication and authorization
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { email, password, username, role } = body;
+    const { email, password, username, role, currency, walletName } = body;
 
     // Validate required fields using middleware
     const validation = validateRequiredFields(body, [
@@ -29,11 +30,17 @@ export async function POST(request: NextRequest) {
       "password",
       "username",
       "role",
+      "currency",
     ]);
     if (!validation.isValid) {
       return errorResponse(
         `Missing required fields: ${validation.missingFields?.join(", ")}`
       );
+    }
+
+    // Validate currency
+    if (!["USD", "VND", "IDR", "PHP"].includes(currency)) {
+      return errorResponse("Invalid currency. Must be USD, VND, IDR, or PHP");
     }
 
     const adminSupabase = createAdminClient();
@@ -77,13 +84,38 @@ export async function POST(request: NextRequest) {
       return errorResponse(upsertProfileError.message);
     }
 
+    // Create the initial wallet using admin client to bypass RLS
+    try {
+      const { error: walletError } = await adminSupabase
+        .from("wallets")
+        .insert({
+          user_id: authData.user.id,
+          currency: currency as Currency,
+          name: walletName || `${currency} Wallet`,
+          is_default: true,
+        });
+
+      if (walletError) {
+        throw new Error(walletError.message);
+      }
+    } catch (walletError) {
+      console.error("Wallet creation error:", walletError);
+      // If wallet creation fails, clean up the user
+      await adminSupabase.auth.admin.deleteUser(authData.user.id);
+      return errorResponse(
+        "Failed to create wallet: " + (walletError as Error).message
+      );
+    }
+
     return successResponse({
-      message: `User ${email} created successfully`,
+      message: `User ${email} created successfully with ${currency} wallet`,
       user: {
         id: authData.user.id,
         email: authData.user.email,
         username,
         role,
+        currency,
+        walletName: walletName || `${currency} Wallet`,
       },
     });
   } catch (error) {

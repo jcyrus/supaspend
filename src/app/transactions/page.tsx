@@ -14,14 +14,23 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  Wallet,
 } from "lucide-react";
-import type { Expense, FundTransactionHistory } from "@/types/database";
+import type {
+  Expense,
+  FundTransactionHistory,
+  Currency,
+  User,
+} from "@/types/database";
 import { EXPENSE_CATEGORIES } from "@/types/database";
 import { getCurrentUser, checkUserRole } from "@/lib/auth-utils";
+import { useWallets } from "@/hooks/api/useWallets";
+import { formatCurrencyWithSymbol } from "@/lib/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -32,6 +41,11 @@ import {
 
 interface ExpenseWithHistory extends Expense {
   edit_history?: EditHistoryEntry[];
+  wallet?: {
+    id: string;
+    currency: string;
+    name: string;
+  };
 }
 
 interface EditHistoryEntry {
@@ -80,6 +94,12 @@ export default function TransactionsPage() {
     reason: "",
   });
   const [showHistoryId, setShowHistoryId] = useState<string | null>(null);
+  const [selectedWalletId, setSelectedWalletId] = useState<string>("all");
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    email?: string;
+    profile: User;
+  } | null>(null);
   const [filter, setFilter] = useState<{
     dateFrom: string;
     dateTo: string;
@@ -93,6 +113,9 @@ export default function TransactionsPage() {
     minAmount: "",
     maxAmount: "",
   });
+
+  // Load wallets for current user
+  const { wallets } = useWallets(currentUser?.id);
 
   const [tempFilter, setTempFilter] = useState<{
     dateFrom: string;
@@ -165,9 +188,10 @@ export default function TransactionsPage() {
   const fetchExpenses = useCallback(async () => {
     try {
       setLoading(true);
-      const currentUser = await getCurrentUser();
+      const user = await getCurrentUser();
+      setCurrentUser(user);
 
-      if (!currentUser?.profile) {
+      if (!user?.profile) {
         console.error("No user or user profile found");
         return;
       }
@@ -185,6 +209,8 @@ export default function TransactionsPage() {
       if (filter.category !== "all") params.append("category", filter.category);
       if (filter.minAmount) params.append("minAmount", filter.minAmount);
       if (filter.maxAmount) params.append("maxAmount", filter.maxAmount);
+      if (selectedWalletId !== "all")
+        params.append("walletId", selectedWalletId);
 
       const response = await fetch(
         `/api/transactions/expenses?${params.toString()}`
@@ -212,7 +238,7 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [showAllUsers, filter]);
+  }, [showAllUsers, filter, selectedWalletId]);
 
   const fetchFundTransactions = useCallback(async () => {
     try {
@@ -322,11 +348,8 @@ export default function TransactionsPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
+  const formatCurrency = (amount: number, currency: string = "USD") => {
+    return formatCurrencyWithSymbol(amount, currency as Currency);
   };
 
   useEffect(() => {
@@ -443,7 +466,7 @@ export default function TransactionsPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dateFrom">From Date</Label>
               <Input
@@ -469,27 +492,54 @@ export default function TransactionsPage() {
             </div>
 
             {viewMode === "expenses" && (
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <Select
-                  value={tempFilter.category}
-                  onValueChange={(value) =>
-                    setTempFilter({ ...tempFilter, category: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {EXPENSE_CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label>Wallet</Label>
+                  <Select
+                    value={selectedWalletId}
+                    onValueChange={setSelectedWalletId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Wallets" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Wallets</SelectItem>
+                      {wallets.map((wallet) => (
+                        <SelectItem key={wallet.id} value={wallet.id}>
+                          <div className="flex items-center space-x-2">
+                            <span>{wallet.name}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {wallet.currency}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select
+                    value={tempFilter.category}
+                    onValueChange={(value) =>
+                      setTempFilter({ ...tempFilter, category: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {EXPENSE_CATEGORIES.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
@@ -574,6 +624,9 @@ export default function TransactionsPage() {
                         Category
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Wallet
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Description
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -637,6 +690,21 @@ export default function TransactionsPage() {
                             </span>
                           )}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          {expense.wallet ? (
+                            <div className="flex items-center space-x-2">
+                              <Wallet className="h-4 w-4 text-muted-foreground" />
+                              <span>{expense.wallet.name}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {expense.wallet.currency}
+                              </Badge>
+                            </div>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">
+                              Unknown
+                            </Badge>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                           {editingId === expense.id ? (
                             <input
@@ -670,7 +738,10 @@ export default function TransactionsPage() {
                               className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
                             />
                           ) : (
-                            formatCurrency(expense.amount)
+                            formatCurrency(
+                              expense.amount,
+                              expense.wallet?.currency || "USD"
+                            )
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
