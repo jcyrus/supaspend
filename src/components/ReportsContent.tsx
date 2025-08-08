@@ -25,11 +25,21 @@ import {
   Wallet,
   AlertTriangle,
 } from "lucide-react";
-import { useBalance } from "@/hooks/useBalance";
-import { formatCurrency, getBalanceColor } from "@/lib/utils/currency";
+import { useWallets, useWalletBalances } from "@/hooks/api/useWallets";
+import {
+  formatCurrencyWithSymbol,
+  getBalanceColor,
+} from "@/lib/utils/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -38,8 +48,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Expense, AdminUserExpense } from "@/types/database";
-import { getAdminUserExpenses, checkUserRole } from "@/lib/auth-utils";
+import type {
+  Expense,
+  AdminUserExpense,
+  User as UserType,
+} from "@/types/database";
+import {
+  getAdminUserExpenses,
+  checkUserRole,
+  getCurrentUser,
+} from "@/lib/auth-utils";
 
 // Register Chart.js components
 ChartJS.register(
@@ -66,10 +84,28 @@ export default function ReportsContent() {
   const [selectedPeriod, setSelectedPeriod] = useState<
     "3months" | "6months" | "1year"
   >("3months");
-  const { balance, loading: balanceLoading } = useBalance();
+  const [selectedWalletId, setSelectedWalletId] = useState<string>("all");
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    email?: string;
+    profile: UserType;
+  } | null>(null);
   const [userBalances, setUserBalances] = useState<{ [key: string]: number }>(
     {}
   );
+
+  // Load wallets for current user
+  const { wallets } = useWallets(currentUser?.id);
+  const { balances } = useWalletBalances(wallets);
+
+  // Calculate total balance across all wallets
+  const totalBalance = Object.values(balances).reduce(
+    (sum, balance) => sum + balance,
+    0
+  );
+  const selectedWallet = wallets.find((w) => w.id === selectedWalletId);
+  const selectedWalletBalance =
+    selectedWalletId === "all" ? totalBalance : balances[selectedWalletId] || 0;
 
   const checkAdminStatus = useCallback(async () => {
     const hasAdminAccess = await checkUserRole("admin");
@@ -78,9 +114,8 @@ export default function ReportsContent() {
 
   const fetchPersonalExpenses = useCallback(async () => {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
+      setCurrentUser(user);
 
       if (!user) return;
 
@@ -92,19 +127,31 @@ export default function ReportsContent() {
           : 12;
       const startDate = subMonths(new Date(), monthsBack);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("expenses")
-        .select("*")
+        .select(
+          `
+          *,
+          wallet:wallets(id, currency, name)
+        `
+        )
         .eq("user_id", user.id)
         .gte("date", format(startDate, "yyyy-MM-dd"))
         .order("date", { ascending: true });
+
+      // Apply wallet filter
+      if (selectedWalletId !== "all") {
+        query = query.eq("wallet_id", selectedWalletId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setExpenses(data || []);
     } catch (error) {
       console.error("Error fetching personal expenses:", error);
     }
-  }, [supabase, selectedPeriod]);
+  }, [supabase, selectedPeriod, selectedWalletId]);
 
   const fetchAdminExpenses = useCallback(async () => {
     try {
@@ -203,12 +250,13 @@ export default function ReportsContent() {
   ]);
 
   // Get the data based on view mode
-  const currentExpenses: Expense[] =
+  const currentExpenses =
     viewMode === "personal"
       ? expenses
       : (adminUserExpenses || []).map((e) => ({
           id: e.expense_id,
           user_id: e.user_id,
+          wallet_id: "", // Admin expenses don't have wallet_id in this format
           date: e.date,
           amount: e.amount,
           category: e.category,
@@ -430,6 +478,42 @@ export default function ReportsContent() {
               ))}
             </div>
           </div>
+
+          {/* Wallet Filter for Personal View */}
+          {viewMode === "personal" && wallets.length > 0 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div className="flex items-center space-x-2">
+                <Wallet className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Wallet Filter:</span>
+              </div>
+              <Select
+                value={selectedWalletId}
+                onValueChange={setSelectedWalletId}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="All Wallets" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Wallets</SelectItem>
+                  {wallets.map((wallet) => (
+                    <SelectItem key={wallet.id} value={wallet.id}>
+                      <div className="flex items-center space-x-2">
+                        <span>{wallet.name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {wallet.currency}
+                        </Badge>
+                        {wallet.is_default && (
+                          <Badge variant="secondary" className="text-xs">
+                            Default
+                          </Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -445,19 +529,29 @@ export default function ReportsContent() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-muted-foreground">
-                    Available Balance
+                    {selectedWalletId === "all"
+                      ? "Total Balance"
+                      : `${selectedWallet?.name || "Wallet"} Balance`}
                   </p>
                   <div
                     className={`text-2xl font-semibold ${getBalanceColor(
-                      balance
+                      selectedWalletBalance
                     )}`}
                   >
-                    {balanceLoading ? (
+                    {Object.keys(balances).length === 0 ? (
                       <div className="animate-pulse h-8 bg-muted rounded w-20"></div>
                     ) : (
                       <>
-                        {formatCurrency(balance)}
-                        {balance < 0 && (
+                        {selectedWalletId === "all" || !selectedWallet
+                          ? formatCurrencyWithSymbol(
+                              selectedWalletBalance,
+                              "USD"
+                            )
+                          : formatCurrencyWithSymbol(
+                              selectedWalletBalance,
+                              selectedWallet.currency
+                            )}
+                        {selectedWalletBalance < 0 && (
                           <div className="flex items-center text-xs text-red-600 dark:text-red-400 mt-1">
                             <AlertTriangle className="h-3 w-3 mr-1" />
                             Negative
@@ -492,11 +586,12 @@ export default function ReportsContent() {
                       )
                     )}`}
                   >
-                    {formatCurrency(
+                    {formatCurrencyWithSymbol(
                       Object.values(userBalances).reduce(
                         (sum, bal) => sum + bal,
                         0
-                      )
+                      ),
+                      "USD"
                     )}
                   </div>
                 </div>
@@ -516,7 +611,14 @@ export default function ReportsContent() {
                   Total Expenses
                 </p>
                 <p className="text-2xl font-semibold">
-                  ${totalAmount.toFixed(2)}
+                  {viewMode === "personal" &&
+                  selectedWalletId !== "all" &&
+                  selectedWallet
+                    ? formatCurrencyWithSymbol(
+                        totalAmount,
+                        selectedWallet.currency
+                      )
+                    : formatCurrencyWithSymbol(totalAmount, "USD")}
                 </p>
               </div>
             </div>
@@ -555,10 +657,20 @@ export default function ReportsContent() {
                   Average per Month
                 </p>
                 <p className="text-2xl font-semibold">
-                  $
-                  {Object.keys(monthlyData).length > 0
-                    ? (totalAmount / Object.keys(monthlyData).length).toFixed(2)
-                    : "0.00"}
+                  {(() => {
+                    const avgAmount =
+                      Object.keys(monthlyData).length > 0
+                        ? totalAmount / Object.keys(monthlyData).length
+                        : 0;
+                    return viewMode === "personal" &&
+                      selectedWalletId !== "all" &&
+                      selectedWallet
+                      ? formatCurrencyWithSymbol(
+                          avgAmount,
+                          selectedWallet.currency
+                        )
+                      : formatCurrencyWithSymbol(avgAmount, "USD");
+                  })()}
                 </p>
               </div>
             </div>
@@ -686,7 +798,10 @@ export default function ReportsContent() {
                                   userBalances[userId] || 0
                                 )}`}
                               >
-                                {formatCurrency(userBalances[userId] || 0)}
+                                {formatCurrencyWithSymbol(
+                                  userBalances[userId] || 0,
+                                  "USD"
+                                )}
                                 {(userBalances[userId] || 0) < 0 && (
                                   <div className="flex items-center text-xs text-red-600 dark:text-red-400 mt-1">
                                     <AlertTriangle className="h-3 w-3 mr-1" />
@@ -696,19 +811,22 @@ export default function ReportsContent() {
                               </span>
                             </TableCell>
                             <TableCell className="text-sm font-medium">
-                              ${summary.totalAmount.toFixed(2)}
+                              {formatCurrencyWithSymbol(
+                                summary.totalAmount,
+                                "USD"
+                              )}
                             </TableCell>
                             <TableCell className="text-sm">
                               {summary.transactionCount}
                             </TableCell>
                             <TableCell className="text-sm">
-                              $
-                              {Object.keys(summary.monthlyData).length > 0
-                                ? (
-                                    summary.totalAmount /
-                                    Object.keys(summary.monthlyData).length
-                                  ).toFixed(2)
-                                : "0.00"}
+                              {formatCurrencyWithSymbol(
+                                Object.keys(summary.monthlyData).length > 0
+                                  ? summary.totalAmount /
+                                      Object.keys(summary.monthlyData).length
+                                  : 0,
+                                "USD"
+                              )}
                             </TableCell>
                           </TableRow>
                         )
@@ -781,7 +899,7 @@ export default function ReportsContent() {
                         <Badge variant="secondary">{expense.category}</Badge>
                       </TableCell>
                       <TableCell className="text-sm font-medium">
-                        ${expense.amount.toFixed(2)}
+                        {formatCurrencyWithSymbol(expense.amount, "USD")}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {expense.description || "-"}

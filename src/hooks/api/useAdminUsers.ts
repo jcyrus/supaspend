@@ -76,6 +76,7 @@ export function useAdminUsers() {
           balance: 0,
           created_at: user.created_at,
           email: user.id, // Placeholder
+          wallets: [], // Empty wallets array as fallback
         }));
 
         setState((prev) => ({

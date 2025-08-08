@@ -21,6 +21,7 @@ interface UsersTableProps {
   onViewHistory: (user: UserWithBalance) => void;
   onDeleteUser: (userId: string) => void;
   onCreateUser: () => void;
+  onManageWallets: (user: UserWithBalance) => void;
 }
 
 export function UsersTable({
@@ -30,6 +31,7 @@ export function UsersTable({
   onViewHistory,
   onDeleteUser,
   onCreateUser,
+  onManageWallets,
 }: UsersTableProps) {
   if (loading) {
     return (
@@ -91,6 +93,7 @@ export function UsersTable({
                   onFund={() => onFundUser(user)}
                   onViewHistory={() => onViewHistory(user)}
                   onDelete={() => onDeleteUser(user.user_id)}
+                  onManageWallets={() => onManageWallets(user)}
                 />
               ))}
             </TableBody>

@@ -12,22 +12,6 @@ interface FundTransaction {
   created_at: string;
 }
 
-interface TransformedTransaction {
-  transaction_id: string;
-  user_id: string;
-  admin_id: string | null;
-  transaction_type: string;
-  amount: number;
-  new_balance: number;
-  description: string | null;
-  created_at: string;
-  username: string;
-  admin_username: string | null;
-  sender: string;
-  recipient: string;
-  display_type: string;
-}
-
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);

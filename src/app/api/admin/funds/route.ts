@@ -20,31 +20,80 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { recipient_id, amount, description } = body;
+    const { recipient_id, amount, description, wallet_id } = body;
 
-    // Validate required fields
-    const validation = validateRequiredFields(body, [
-      "recipient_id",
-      "amount",
-      "description",
-    ]);
+    // Determine if this is wallet-specific or legacy user funding
+    const isWalletFunding = !!wallet_id;
+
+    let validation;
+    if (isWalletFunding) {
+      // For wallet funding, we need wallet_id, amount, and optionally description
+      validation = validateRequiredFields(body, ["wallet_id", "amount"]);
+    } else {
+      // For legacy user funding, we need recipient_id, amount, and description
+      validation = validateRequiredFields(body, [
+        "recipient_id",
+        "amount",
+        "description",
+      ]);
+    }
+
     if (!validation.isValid) {
       return errorResponse(
         `Missing required fields: ${validation.missingFields?.join(", ")}`
       );
     }
 
-    // Call the database function to add funds
-    const { data, error } = await supabase!.rpc("add_user_funds", {
-      target_user_id: recipient_id,
-      amount: parseFloat(amount),
-      admin_user_id: user?.id,
-      description: description || `Fund deposit by ${userProfile?.username}`,
-    });
+    let data, error;
 
-    if (error) {
-      console.error("Error adding funds:", error);
-      return errorResponse(error.message);
+    if (isWalletFunding) {
+      // First, get the target wallet info to provide better error messages
+      const { data: walletInfo, error: walletError } = await supabase!
+        .from("wallets")
+        .select("currency, name, user_id")
+        .eq("id", wallet_id)
+        .single();
+
+      if (walletError || !walletInfo) {
+        return errorResponse("Target wallet not found");
+      }
+
+      // Use wallet-specific funding function
+      ({ data, error } = await supabase!.rpc("add_wallet_funds", {
+        target_wallet_id: wallet_id,
+        amount: parseFloat(amount),
+        admin_user_id: user?.id,
+        description: description || `Fund deposit by ${userProfile?.username}`,
+      }));
+
+      // Provide more helpful error messages
+      if (error) {
+        console.error("Error adding funds:", error);
+        let errorMessage = error.message;
+
+        if (
+          data &&
+          data.includes("does not have a") &&
+          data.includes("wallet")
+        ) {
+          errorMessage = `${data} You need a default ${walletInfo.currency} wallet to fund other users' ${walletInfo.currency} wallets. Please create a ${walletInfo.currency} wallet or set an existing one as default.`;
+        }
+
+        return errorResponse(errorMessage);
+      }
+    } else {
+      // Use legacy user funding function
+      ({ data, error } = await supabase!.rpc("add_user_funds", {
+        target_user_id: recipient_id,
+        amount: parseFloat(amount),
+        admin_user_id: user?.id,
+        description: description || `Fund deposit by ${userProfile?.username}`,
+      }));
+
+      if (error) {
+        console.error("Error adding funds:", error);
+        return errorResponse(error.message);
+      }
     }
 
     // Check if the function returned an error message

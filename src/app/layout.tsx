@@ -3,6 +3,7 @@ import "./globals.css";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import AuthGuard from "@/components/AuthGuard";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "Petty Cash Tracker",
@@ -16,11 +17,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="h-full antialiased">
+      <body className="h-full antialiased" suppressHydrationWarning>
         <ThemeProvider>
           <AuthGuard>
             <DashboardLayout>{children}</DashboardLayout>
           </AuthGuard>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

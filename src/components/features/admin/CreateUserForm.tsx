@@ -14,7 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { UserRole } from "@/types/database";
+import { SUPPORTED_CURRENCIES, CURRENCY_CONFIG } from "@/lib/utils/currency";
+import type { UserRole, Currency } from "@/types/database";
 
 interface CreateUserFormProps {
   onSuccess: () => void;
@@ -30,6 +31,8 @@ export function CreateUserForm({ onSuccess, onCancel }: CreateUserFormProps) {
     password: "",
     username: "",
     role: "user" as UserRole,
+    currency: "USD" as Currency,
+    walletName: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +52,8 @@ export function CreateUserForm({ onSuccess, onCancel }: CreateUserFormProps) {
           password: formData.password,
           username: formData.username,
           role: formData.role,
+          currency: formData.currency,
+          walletName: formData.walletName || `${formData.currency} Wallet`,
         }),
       });
 
@@ -58,12 +63,16 @@ export function CreateUserForm({ onSuccess, onCancel }: CreateUserFormProps) {
         throw new Error(result.error || "Failed to create user");
       }
 
-      setSuccess(`User ${formData.email} created successfully!`);
+      setSuccess(
+        `User ${formData.email} created successfully with ${formData.currency} wallet!`
+      );
       setFormData({
         email: "",
         password: "",
         username: "",
         role: "user",
+        currency: "USD",
+        walletName: "",
       });
 
       onSuccess();
@@ -84,7 +93,7 @@ export function CreateUserForm({ onSuccess, onCancel }: CreateUserFormProps) {
   };
 
   return (
-    <Card>
+    <Card className="mb-6">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Create New User</CardTitle>
@@ -171,6 +180,45 @@ export function CreateUserForm({ onSuccess, onCancel }: CreateUserFormProps) {
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="currency">Initial Wallet Currency</Label>
+              <Select
+                value={formData.currency}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    currency: value as Currency,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_CURRENCIES.map((currency) => (
+                    <SelectItem key={currency} value={currency}>
+                      {CURRENCY_CONFIG[currency].symbol} {currency} -{" "}
+                      {CURRENCY_CONFIG[currency].name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="walletName">Wallet Name (optional)</Label>
+              <Input
+                id="walletName"
+                name="walletName"
+                type="text"
+                value={formData.walletName}
+                onChange={(e) =>
+                  setFormData({ ...formData, walletName: e.target.value })
+                }
+                placeholder={`${formData.currency} Wallet`}
+              />
             </div>
           </div>
 
