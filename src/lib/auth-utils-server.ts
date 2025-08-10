@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import type { UserRole, User, Database } from "@/types/database";
+import type { UserRole, User } from "@/types/database";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { NextRequest } from "next/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 interface UserWithProfile extends SupabaseUser {
   profile: User;

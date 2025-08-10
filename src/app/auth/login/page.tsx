@@ -4,7 +4,7 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,11 @@ export default function LoginPage() {
   const supabase = createClient();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Toggle function for next-themes
   const toggleTheme = () => {
@@ -45,6 +50,8 @@ export default function LoginPage() {
 
   // Force input text color based on current theme
   useEffect(() => {
+    if (!mounted) return;
+
     const addInputStyles = () => {
       const existingStyle = document.getElementById("auth-input-override");
       if (existingStyle) {
@@ -121,7 +128,30 @@ export default function LoginPage() {
         style.remove();
       }
     };
-  }, [theme]); // Added theme dependency
+  }, [theme, mounted]); // Added mounted dependency
+
+  // Don't render theme-dependent content until mounted
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold mb-2">Petty Cash Tracker</h1>
+            <h2 className="text-xl text-muted-foreground">
+              Sign in to your account
+            </h2>
+          </div>
+        </div>
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          <Card>
+            <CardContent className="py-8 px-4 sm:px-10">
+              <div className="text-center">Loading...</div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
