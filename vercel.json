@@ -1,21 +1,5 @@
 {
-  "buildCommand": "yarn build:shared && cd apps/web && yarn build",
+  "buildCommand": "yarn build:shared && yarn build:web",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "yarn install",
-  "framework": "nextjs",
-  "regions": ["iad1"],
-  "env": {
-    "YARN_VERSION": "1.22.22"
-  },
-  "functions": {
-    "apps/web/src/app/api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/api/v2/:path*",
-      "destination": "https://supaspend-api.up.railway.app/:path*"
-    }
-  ]
+  "installCommand": "yarn install"
 }

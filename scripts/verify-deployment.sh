@@ -24,7 +24,7 @@ echo "📦 Installing dependencies..."
 yarn install > /dev/null 2>&1
 
 echo "🔨 Building shared package..."
-cd packages/shared && yarn build > /dev/null 2>&1 && cd ../..
+yarn build:shared > /dev/null 2>&1
 
 echo "🌐 Building frontend..."
 yarn build:web > /dev/null 2>&1
