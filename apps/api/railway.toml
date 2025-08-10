@@ -1,9 +1,9 @@
 [build]
 builder = "nixpacks"
-buildCommand = "yarn build"
+buildCommand = "cd apps/api && yarn build"
 
 [deploy]
-startCommand = "yarn start:prod"
+startCommand = "cd apps/api && yarn start:prod"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
@@ -13,3 +13,4 @@ restartPolicyMaxRetries = 3
 PORT = "4444"
 NODE_ENV = "production"
 NODE_VERSION = "20"
+NIXPACKS_NODE_VERSION = "20"
