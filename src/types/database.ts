@@ -44,6 +44,8 @@ export interface Database {
         Row: {
           id: string;
           username: string;
+          display_name: string | null;
+          avatar_url: string | null;
           role: UserRole;
           created_by: string | null;
           created_at: string;
@@ -52,6 +54,8 @@ export interface Database {
         Insert: {
           id?: string;
           username: string;
+          display_name?: string | null;
+          avatar_url?: string | null;
           role?: UserRole;
           created_by?: string | null;
           created_at?: string;
@@ -60,6 +64,8 @@ export interface Database {
         Update: {
           id?: string;
           username?: string;
+          display_name?: string | null;
+          avatar_url?: string | null;
           role?: UserRole;
           created_by?: string | null;
           created_at?: string;

@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Plus, BarChart3, Users, History, Wallet } from "lucide-react";
+import {
+  Home,
+  Plus,
+  BarChart3,
+  Users,
+  History,
+  Wallet,
+  User,
+  Settings,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "@/lib/auth-utils";
 import {
@@ -37,10 +46,12 @@ export default function AppSidebar() {
     { href: "/wallets", label: "My Wallets", icon: Wallet },
     { href: "/transactions", label: "Transactions", icon: History },
     { href: "/reports", label: "Reports", icon: BarChart3 },
+    { href: "/profile", label: "Profile", icon: User },
   ];
 
   const adminNavItems = [
     { href: "/admin/users", label: "Manage Users", icon: Users },
+    { href: "/test-api", label: "API Tests", icon: Settings },
   ];
 
   const navItems =
