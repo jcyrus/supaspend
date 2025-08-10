@@ -12,5 +12,5 @@ restartPolicyMaxRetries = 3
 [env]
 PORT = "4444"
 NODE_ENV = "production"
-NODE_VERSION = "20"
-NIXPACKS_NODE_VERSION = "20"
+NODE_VERSION = "18"
+NIXPACKS_NODE_VERSION = "18"
