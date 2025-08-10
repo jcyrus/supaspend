@@ -3,17 +3,22 @@
 -- =============================================================================
 -- This script sets up the complete Supaspend database for fresh installations
 -- Features: User profiles, Multi-currency wallets, Complete audit trail, Profile management
--- Version: 4.8 - Added missing utility functions (get_current_user_role, calculate_wallet_balance)
--- Updated: August 10, 2025 - Single script for new developers with critical fixes
+-- Version: 5.0 - Working avatar storage policies and bucket configuration
+-- Updated: August 10, 2025 - Single script for new developers with working profile uploads
 -- 
 -- CRITICAL FIXES INCLUDED IN THIS VERSION:
 -- • Fixed handle_new_user() trigger with explicit schema qualification (user_role casting)
 -- • Updated RLS policy for users table to allow trigger-based inserts
+-- • Fixed avatar storage bucket with proper policies for profile image uploads
+-- • Updated storage policies to use simplified authenticated user checks
 -- • Fixed wallet creation RLS policy to allow admins to create wallets for managed users
 -- • Added proper search_path setting in trigger function
 -- • Added error logging for better debugging of user creation issues
 -- • Ensured all enum types use explicit schema qualification
 -- =============================================================================
+
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 -- Create enum types
 CREATE TYPE user_role AS ENUM ('user', 'admin', 'superadmin');
@@ -104,16 +109,43 @@ CREATE TABLE public.expense_edit_history (
 -- STORAGE SETUP (Profile Images)
 -- =============================================================================
 
--- Create storage bucket for profile images
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'profile-images',
-  'profile-images',
-  true,
-  5242880, -- 5MB limit
-  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-)
-ON CONFLICT (id) DO NOTHING;
+-- Create avatars bucket for profile images
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 10485760,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+-- Storage policies for avatar uploads
+CREATE POLICY "Users can upload avatars" ON storage.objects
+FOR INSERT 
+TO authenticated
+WITH CHECK (bucket_id = 'avatars');
+
+CREATE POLICY "Users can view avatars" ON storage.objects
+FOR SELECT 
+TO authenticated
+USING (bucket_id = 'avatars');
+
+CREATE POLICY "Users can update their own avatars" ON storage.objects
+FOR UPDATE 
+TO authenticated
+USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1])
+WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+CREATE POLICY "Users can delete their own avatars" ON storage.objects
+FOR DELETE 
+TO authenticated
+USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+-- Allow public read access for all avatars
+CREATE POLICY "Public can view avatars" ON storage.objects
+FOR SELECT 
+TO public
+USING (bucket_id = 'avatars');
+
+-- =============================================================================
 
 -- =============================================================================
 -- INDEXES FOR PERFORMANCE
@@ -768,7 +800,6 @@ BEGIN
   LIMIT limit_count;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-    $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to get user's total balance
 
@@ -928,15 +959,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to update expense timestamps
-CREATE OR REPLACE FUNCTION update_expense_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
 -- =============================================================================
 -- WALLET CREATION FUNCTION (SECURITY DEFINER)
 -- =============================================================================
@@ -1046,12 +1068,6 @@ CREATE TRIGGER enforce_wallet_limit
 CREATE TRIGGER on_expense_created_deduct_wallet_balance
   AFTER INSERT ON public.expenses
   FOR EACH ROW EXECUTE FUNCTION public.handle_expense_wallet_deduction();
-
--- Update expense timestamp trigger
-CREATE TRIGGER trigger_update_expense_updated_at
-    BEFORE UPDATE ON expenses
-    FOR EACH ROW
-    EXECUTE FUNCTION update_expense_updated_at();
 
 -- =============================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES

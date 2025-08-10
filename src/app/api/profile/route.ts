@@ -44,24 +44,7 @@ export async function PUT(request: NextRequest) {
 
     const { supabase } = createClient(request);
 
-    // Check if username is already taken by another user
-    if (username !== currentUser.profile.username) {
-      const { data: existingUser } = await supabase
-        .from("users")
-        .select("id")
-        .eq("username", username)
-        .neq("id", currentUser.id)
-        .single();
-
-      if (existingUser) {
-        return NextResponse.json(
-          { error: "Username is already taken" },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Update user profile
+    // Update user profile - let database unique constraint handle username validation
     const { data, error } = await supabase
       .from("users")
       .update({
@@ -85,13 +68,27 @@ export async function PUT(request: NextRequest) {
       console.error("User ID:", currentUser.id);
       console.error("Auth user:", currentUser.email);
 
+      // Handle unique constraint violation for username
+      if (error.code === "23505" && error.message?.includes("username")) {
+        return NextResponse.json(
+          {
+            error:
+              "Username is already taken. Please choose a different username.",
+            statusCode: 400,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Handle other errors with numeric status codes
+      const statusCode = error.code === "42501" ? 403 : 500;
       return NextResponse.json(
         {
           error: "Failed to update profile",
           details: error.message,
-          statusCode: error.code === "42501" ? "403" : "500",
+          statusCode: statusCode,
         },
-        { status: error.code === "42501" ? 403 : 500 }
+        { status: statusCode }
       );
     }
 

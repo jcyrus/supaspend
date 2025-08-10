@@ -30,11 +30,9 @@ export default function ApiTestPage() {
     setResults((prev) => {
       const existing = prev.find((r) => r.test === test);
       if (existing) {
-        existing.status = status;
-        existing.response = response;
-        existing.error = error;
-        existing.duration = duration;
-        return [...prev];
+        return prev.map((r) =>
+          r.test === test ? { ...r, status, response, error, duration } : r
+        );
       } else {
         return [...prev, { test, status, response, error, duration }];
       }

@@ -105,11 +105,11 @@ export function useProfile() {
       // Create a unique filename
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.profile.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const filePath = `${user.profile.id}/${fileName}`;
 
       // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
-        .from("profile-images")
+        .from("avatars")
         .upload(filePath, file);
 
       if (uploadError) {
@@ -117,9 +117,7 @@ export function useProfile() {
       }
 
       // Get the public URL
-      const { data } = supabase.storage
-        .from("profile-images")
-        .getPublicUrl(filePath);
+      const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
       return data.publicUrl;
     } catch (err) {

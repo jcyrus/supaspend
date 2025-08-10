@@ -85,9 +85,27 @@ A modern expense management application built with Next.js 15, Supabase, and Typ
    npm run dev
    ```
 
-7. **Access the application**
-   - Open [http://localhost:3000](http://localhost:3000)
-   - Create your first admin user through the signup process
+7. **Create first admin user in Supabase**
+
+   - Go to your Supabase Dashboard → Authentication → Users
+   - Click "Add user" and create your admin account
+   - Or sign up through the app at [http://localhost:3000](http://localhost:3000)
+
+8. **Promote first user to admin**
+
+   After creating your account, promote yourself to admin using SQL:
+
+   ```sql
+   -- Replace with your actual email address
+   SELECT public.change_user_role('your-email@example.com', 'admin');
+   ```
+
+   Run this in your Supabase Dashboard → SQL Editor, then verify with:
+
+   ```sql
+   -- Verify admin role was set
+   SELECT * FROM public.get_user_info('your-email@example.com');
+   ```
 
 ## Database Setup
 
@@ -382,8 +400,8 @@ Works on any Next.js-compatible platform:
 
 ### Admin Setup
 
-- [ ] Created first user through Supabase Dashboard (Authentication → Users)
-- [ ] Promoted to admin via SQL command
+- [ ] Created first user through Supabase Dashboard (Authentication → Users) or app signup
+- [ ] Promoted to admin via SQL command: `SELECT public.change_user_role('your-email@example.com', 'admin');`
 - [ ] Verified admin navigation appears
 - [ ] Tested user creation functionality
 

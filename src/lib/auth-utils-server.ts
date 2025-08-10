@@ -28,30 +28,26 @@ export async function getCurrentUserServer(
       .from("users")
       .select("*")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     if (profileError) {
-      console.error("Error fetching user profile:", profileError);
-      console.error("User ID:", user.id);
-      console.error("Error details:", {
-        code: profileError.code,
-        message: profileError.message,
-        details: profileError.details,
-        hint: profileError.hint,
-      });
-
-      // If user profile doesn't exist, try to create it
-      if (profileError.code === "PGRST116") {
-        // No rows returned
-        console.log("User profile not found, creating one...");
-        return await createUserProfileServer(user, supabase);
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Error fetching user profile:", profileError);
+        console.error("User ID:", user.id);
+        console.error("Error details:", {
+          code: profileError.code,
+          message: profileError.message,
+          details: profileError.details,
+          hint: profileError.hint,
+        });
       }
-
       return null;
     }
 
     if (!userProfile) {
-      console.warn("No user profile found for user ID:", user.id);
+      if (process.env.NODE_ENV !== "production") {
+        console.log("User profile not found, creating one...");
+      }
       return await createUserProfileServer(user, supabase);
     }
 
@@ -60,7 +56,9 @@ export async function getCurrentUserServer(
       profile: userProfile,
     };
   } catch (error) {
-    console.error("Error getting current user:", error);
+    if (process.env.NODE_ENV !== "production") {
+      console.error("Error getting current user:", error);
+    }
     return null;
   }
 }
@@ -71,36 +69,55 @@ async function createUserProfileServer(
   supabase: ReturnType<typeof createClient>["supabase"]
 ): Promise<UserWithProfile | null> {
   try {
-    console.log("Creating user profile for:", authUser.id);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Creating user profile for:", authUser.id);
+    }
 
-    // Extract username from email (before @) or use a default
-    const username =
-      authUser.email?.split("@")[0] || `user_${authUser.id.slice(0, 8)}`;
+    // Sanitize email prefix and ensure uniqueness
+    const emailPrefix = authUser.email?.split("@")[0] || "user";
+    const sanitizedPrefix = emailPrefix
+      .replace(/[^a-zA-Z0-9_]/g, "")
+      .toLowerCase();
+    const userIdFragment = authUser.id.slice(0, 8);
+    const username = `${sanitizedPrefix}_${userIdFragment}`;
 
+    // Use upsert to handle concurrent requests and make operation idempotent
     const { data: newProfile, error: createError } = await supabase
       .from("users")
-      .insert({
-        id: authUser.id,
-        username: username,
-        role: "user", // Default role
-        created_by: null, // No creator for auto-created profiles
-      })
+      .upsert(
+        {
+          id: authUser.id,
+          username: username,
+          role: "user", // Default role
+          created_by: null, // No creator for auto-created profiles
+        },
+        {
+          onConflict: "id",
+          ignoreDuplicates: false, // Return the existing row if it exists
+        }
+      )
       .select()
       .single();
 
     if (createError) {
-      console.error("Error creating user profile:", createError);
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Error creating user profile:", createError);
+      }
       return null;
     }
 
-    console.log("User profile created successfully:", newProfile);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("User profile created successfully:", newProfile);
+    }
 
     return {
       ...authUser,
       profile: newProfile,
     };
   } catch (error) {
-    console.error("Error in createUserProfileServer:", error);
+    if (process.env.NODE_ENV !== "production") {
+      console.error("Error in createUserProfileServer:", error);
+    }
     return null;
   }
 }
@@ -121,7 +138,7 @@ export async function checkUserRoleServer(
     superadmin: 3,
   };
 
-  const userLevel = roleHierarchy[user.profile.role as UserRole];
+  const userLevel = roleHierarchy[user.profile.role as UserRole] ?? 0;
   const requiredLevel = roleHierarchy[requiredRole];
 
   return userLevel >= requiredLevel;
