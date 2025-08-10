@@ -75,8 +75,7 @@ export default function ProfilePage() {
         }));
         toast.success("Profile photo uploaded successfully");
       }
-    } catch (_error) {
-      // eslint-disable-line @typescript-eslint/no-unused-vars
+    } catch {
       // Error handling is done in the hook
     } finally {
       setIsUploadingAvatar(false);
@@ -94,8 +93,7 @@ export default function ProfilePage() {
       if (success) {
         toast.success("Profile updated successfully");
       }
-    } catch (_error) {
-      // eslint-disable-line @typescript-eslint/no-unused-vars
+    } catch {
       // Error handling is done in the hook
     } finally {
       setIsUpdatingProfile(false);
@@ -127,8 +125,7 @@ export default function ProfilePage() {
           confirmPassword: "",
         });
       }
-    } catch (_error) {
-      // eslint-disable-line @typescript-eslint/no-unused-vars
+    } catch {
       // Error handling is done in the hook
     } finally {
       setIsUpdatingPassword(false);
