@@ -1,9 +1,9 @@
 [build]
 builder = "nixpacks"
-buildCommand = "turbo run build --filter=@supaspend/api"
+buildCommand = "cd apps/api && yarn build"
 
 [deploy]
-startCommand = "turbo run start:prod --filter=@supaspend/api"
+startCommand = "cd apps/api && yarn start:prod"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
