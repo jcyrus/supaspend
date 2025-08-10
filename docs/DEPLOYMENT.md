@@ -40,6 +40,35 @@ Railway should auto-detect the build configuration from `railway.toml`, but veri
 - **Build Command**: `yarn build`
 - **Start Command**: `yarn start:prod`
 - **Health Check Path**: `/health`
+- **Node.js Version**: 20.x (specified in configuration files)
+
+### 1.3a Troubleshooting Node.js Version Issues
+
+If you encounter the error: `The engine "node" is incompatible with this module. Expected version ">= 20". Got "18.x"`
+
+**Solution Options:**
+
+**Option A: Force Node.js 20 (Recommended)**
+
+1. Railway should use Node.js 20 from the configuration files
+2. If it doesn't work, add environment variable in Railway dashboard:
+   - `NODE_VERSION = 20`
+3. Redeploy the service
+
+**Option B: Downgrade NestJS for Node.js 18**
+
+```bash
+# Run the downgrade script locally
+./scripts/downgrade-nestjs.sh
+
+# Redeploy on Railway
+```
+
+**Option C: Manual Railway Dashboard Fix**
+
+1. Go to Railway Dashboard → Your Service → Settings
+2. Add Environment Variable: `NODE_VERSION = 20`
+3. Trigger a new deployment
 
 ### 1.4 Get Your API URL
 

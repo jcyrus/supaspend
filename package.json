@@ -18,6 +18,7 @@
     "dev:api": "turbo run dev --filter=@supaspend/api",
     "build:web": "turbo run build --filter=@supaspend/web",
     "build:api": "turbo run build --filter=@supaspend/api",
+    "build:shared": "turbo run build --filter=@supaspend/shared",
     "verify": "./scripts/verify-deployment.sh",
     "health": "./scripts/health-check.sh",
     "reset": "./scripts/clean.sh"
