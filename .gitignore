@@ -1,71 +1,89 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+**/node_modules
+**/.pnp
+**/.pnp.*
+**/.yarn/*
+!**/.yarn/patches
+!**/.yarn/plugins
+!**/.yarn/releases
+!**/.yarn/versions
 
 # testing
-/coverage
+**/coverage
 
 # next.js
-/.next/
-/out/
+**/.next/
+**/out/
 
 # production
-/build
+**/build
+**/dist
 
 # misc
-.DS_Store
-*.pem
+**/.DS_Store
+**/*.pem
 
 # debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/.pnpm-debug.log*
 
 # environment variables
-.env*
-!.env.example
+**/.env*
+!**/.env.example
 
 # vercel
-.vercel
+**/.vercel
 
 # typescript
-*.tsbuildinfo
-next-env.d.ts
+**/*.tsbuildinfo
+**/next-env.d.ts
 
 # development artifacts
-*.bak
-*.tmp
-*.old
-*.backup
-*.new
-*_BACKUP_*
-*_BASE_*
-*_LOCAL_*
-*_REMOTE_*
+**/*.bak
+**/*.tmp
+**/*.old
+**/*.backup
+**/*.new
+**/*_BACKUP_*
+**/*_BASE_*
+**/*_LOCAL_*
+**/*_REMOTE_*
 
 # supabase
 .supabase/
-supabase/migrations/*.sql
+supabase/.temp/
 
 # logs
-logs
-*.log
+**/logs
+**/*.log
 
 # IDE files
 .vscode/
 .idea/
-*.swp
-*.swo
+**/*.swp
+**/*.swo
 
 # OS files
-Thumbs.db
-.DS_Store
+**/Thumbs.db
+**/.DS_Store
+
+# Monorepo specific
+# Turborepo cache
+**/.turbo/
+
+# Build outputs from individual packages
+packages/*/dist/
+packages/*/build/
+
+# Local development files
+**/*.local
+
+# Lock files (keep only root yarn.lock)
+apps/*/package-lock.json
+apps/*/yarn.lock
+packages/*/package-lock.json
+packages/*/yarn.lock

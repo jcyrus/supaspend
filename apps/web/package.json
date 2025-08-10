@@ -1,26 +1,13 @@
 {
-  "name": "@supaspend/root",
+  "name": "@supaspend/web",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "yarn@1.22.22",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "start": "turbo run start",
-    "lint": "turbo run lint",
-    "clean": "turbo run clean",
-    "test": "turbo run test",
-    "dev:web": "turbo run dev --filter=@supaspend/web",
-    "dev:api": "turbo run dev --filter=@supaspend/api",
-    "build:web": "turbo run build --filter=@supaspend/web",
-    "build:api": "turbo run build --filter=@supaspend/api",
-    "verify": "./scripts/verify-deployment.sh",
-    "health": "./scripts/health-check.sh",
-    "reset": "./scripts/clean.sh"
+    "dev": "next dev --turbopack --port 3333",
+    "build": "next build",
+    "start": "next start --port 3333",
+    "lint": "next lint",
+    "clean": "rm -rf .next"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -33,6 +20,7 @@
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tooltip": "^1.2.7",
+    "@supaspend/shared": "*",
     "@supabase/auth-ui-react": "^0.4.7",
     "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/ssr": "^0.6.1",
@@ -62,7 +50,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.5",
     "tailwindcss": "^4",
-    "turbo": "^2.5.5",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5"
   }

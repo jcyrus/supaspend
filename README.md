@@ -1,6 +1,14 @@
 # SupaSpend - Expense Management System
 
-A modern expense management application built with Next.js 15, Supabase, and TypeScript.
+A modern monorepo expense management application built with Next.js 15 frontend, NestJS backend, and Supabase.
+
+## 🏗️ Architecture
+
+This is a **Turborepo monorepo** containing:
+
+- **Frontend**: Next.js 15 app with TypeScript (`apps/web`)
+- **Backend**: NestJS API server (`apps/api`)
+- **Shared**: Common types, utilities, and constants (`packages/shared`)
 
 ## Features
 
@@ -16,19 +24,21 @@ A modern expense management application built with Next.js 15, Supabase, and Typ
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15 with TypeScript
+- **Monorepo**: Turborepo with Yarn workspaces
+- **Frontend**: Next.js 15 with TypeScript (Port 3333)
+- **Backend**: NestJS with TypeScript (Port 4444)
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui
-- **State Management**: React hooks
+- **Package Manager**: Yarn with workspaces
 
 ## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
+- Yarn (recommended) or npm
 - Supabase account
 
 ### Installation
@@ -43,24 +53,42 @@ A modern expense management application built with Next.js 15, Supabase, and Typ
 2. **Install dependencies**
 
    ```bash
-   npm install
+   yarn install
    ```
 
 3. **Set up environment variables**
 
+   Create environment files for both apps:
+
    ```bash
-   cp .env.example .env.local
+   # Frontend environment
+   cp apps/web/.env.example apps/web/.env.local
+
+   # Backend environment
+   cp apps/api/.env.example apps/api/.env
    ```
 
-   Update `.env.local` with your Supabase credentials:
+   Update the environment files with your Supabase credentials:
+
+   **apps/web/.env.local:**
 
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   NEXT_PUBLIC_API_URL=http://localhost:4444
    ```
 
-4. **Set up the database (One-Script Setup)**
+   **apps/api/.env:**
+
+   ```env
+   SUPABASE_URL=your-supabase-url
+   SUPABASE_ANON_KEY=your-supabase-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   PORT=4444
+   ```
+
+4. **Set up the database**
 
    Run the consolidated database setup script:
 
@@ -69,29 +97,43 @@ A modern expense management application built with Next.js 15, Supabase, and Typ
    supabase db reset
 
    # Or directly with psql
-   psql -h your-db-host -U postgres -d your-database -f DATABASE_SETUP.sql
+   psql -h your-db-host -U postgres -d your-database -f database/DATABASE_SETUP.sql
    ```
 
-5. **Validate the setup (Optional)**
+5. **Build shared packages**
 
    ```bash
-   # Test database functions and structure
-   psql -h your-db-host -U postgres -d your-database -f validate_database_setup.sql
+   yarn build:shared
    ```
 
-6. **Start the development server**
+6. **Start development servers**
+
+   Option 1 - Start both apps simultaneously:
 
    ```bash
-   npm run dev
+   yarn dev
    ```
 
-7. **Create first admin user in Supabase**
+   Option 2 - Start individually:
 
+   ```bash
+   # Terminal 1 - API Server (Port 4444)
+   yarn dev:api
+
+   # Terminal 2 - Web App (Port 3333)
+   yarn dev:web
+   ```
+
+7. **Access the applications**
+   - **Frontend**: [http://localhost:3333](http://localhost:3333)
+   - **Backend API**: [http://localhost:4444](http://localhost:4444)
+
+8. **Create first admin user**
    - Go to your Supabase Dashboard → Authentication → Users
    - Click "Add user" and create your admin account
-   - Or sign up through the app at [http://localhost:3000](http://localhost:3000)
+   - Or sign up through the frontend app
 
-8. **Promote first user to admin**
+9. **Promote first user to admin**
 
    After creating your account, promote yourself to admin using SQL:
 
@@ -100,29 +142,178 @@ A modern expense management application built with Next.js 15, Supabase, and Typ
    SELECT public.change_user_role('your-email@example.com', 'admin');
    ```
 
-   Run this in your Supabase Dashboard → SQL Editor, then verify with:
+## Monorepo Structure
 
-   ```sql
-   -- Verify admin role was set
-   SELECT * FROM public.get_user_info('your-email@example.com');
-   ```
+```
+supaspend/
+├── apps/
+│   ├── web/                 # Next.js frontend (Port 3333)
+│   │   ├── src/
+│   │   │   ├── app/         # Next.js app router pages
+│   │   │   ├── components/  # React components
+│   │   │   ├── hooks/       # Custom React hooks
+│   │   │   ├── lib/         # Frontend utilities
+│   │   │   └── types/       # Frontend-specific types
+│   │   ├── public/
+│   │   └── package.json
+│   └── api/                 # NestJS backend (Port 4444)
+│       ├── src/
+│       │   ├── app.module.ts
+│       │   ├── main.ts
+│       │   ├── health/      # Health check endpoints
+│       │   └── modules/     # API modules (auth, users, etc.)
+│       ├── railway.toml     # Railway deployment config
+│       └── package.json
+├── packages/
+│   └── shared/              # Shared code between apps
+│       ├── src/
+│       │   ├── types/       # Database types and schemas
+│       │   ├── utils/       # Common utilities
+│       │   └── constants/   # App constants
+│       └── package.json
+├── database/                # Database setup and migration files
+│   ├── DATABASE_SETUP.sql   # Complete database schema
+│   ├── validate_database_setup.sql # Validation script
+│   └── README.md           # Database documentation
+├── docs/                   # Project documentation
+│   ├── DEPLOYMENT.md       # Deployment guide
+│   └── README.md          # Documentation index
+├── scripts/                # Development and utility scripts
+│   ├── verify-deployment.sh # Pre-deployment verification
+│   ├── clean.sh           # Environment cleanup
+│   └── health-check.sh    # Project health check
+├── supabase/              # Supabase CLI files (development)
+│   └── migrations/        # Database migrations
+├── turbo.json             # Turborepo configuration
+├── vercel.json            # Vercel deployment config
+├── package.json           # Root workspace configuration
+└── yarn.lock             # Yarn lockfile
+```
+
+## Development Scripts
+
+### Root Level Commands
+
+```bash
+# Install all dependencies
+yarn install
+
+# Start both frontend and backend
+yarn dev
+
+# Build all packages and apps
+yarn build
+
+# Start individual apps
+yarn dev:web        # Start frontend only (port 3333)
+yarn dev:api        # Start backend only (port 4444)
+
+# Build specific packages
+yarn build:shared   # Build shared package
+yarn build:web      # Build frontend
+yarn build:api      # Build backend
+
+# Clean all build artifacts
+yarn clean
+
+# Lint all packages
+yarn lint
+```
+
+### App-Specific Commands
+
+```bash
+# Frontend (apps/web)
+cd apps/web
+yarn dev            # Start Next.js dev server
+yarn build          # Build for production
+yarn start          # Start production server
+yarn lint           # Lint frontend code
+
+# Backend (apps/api)
+cd apps/api
+yarn dev            # Start NestJS dev server
+yarn build          # Build for production
+yarn start:prod     # Start production server
+yarn test           # Run tests
+
+# Shared Package (packages/shared)
+cd packages/shared
+yarn build          # Build shared types and utilities
+yarn dev            # Watch mode for development
+```
+
+## Project Architecture
+
+### Frontend (apps/web)
+
+- **Next.js 15** with App Router
+- **Port**: 3333
+- **Purpose**: User interface and client-side functionality
+- **Key Features**:
+  - Server-side rendering
+  - API route integration (transitioning to NestJS)
+  - shadcn/ui components
+  - Tailwind CSS styling
+
+### Backend (apps/api)
+
+- **NestJS** with TypeScript
+- **Port**: 4444
+- **Purpose**: API server and business logic
+- **Key Features**:
+  - RESTful API endpoints
+  - Supabase integration
+  - CORS enabled for frontend
+  - Modular architecture
+
+### Shared Package (packages/shared)
+
+- **Purpose**: Code shared between frontend and backend
+- **Contents**:
+  - Database types from Supabase
+  - API request/response schemas
+  - Common utilities (currency, date formatting)
+  - Application constants
+  - Validation schemas
+
+## API Migration Status
+
+🚧 **Currently migrating from Next.js API routes to NestJS backend**
+
+### Completed
+
+- ✅ Monorepo setup with Turborepo
+- ✅ Frontend running on port 3333
+- ✅ Backend scaffold running on port 4444
+- ✅ Shared package with types and utilities
+- ✅ CORS configuration for frontend-backend communication
+
+### In Progress
+
+- 🔄 Migrating authentication endpoints
+- 🔄 User management APIs
+- 🔄 Expense tracking endpoints
+- 🔄 Fund management APIs
+
+### Next.js API Routes (Legacy - being migrated)
+
+- `apps/web/src/app/api/*` - Original API routes (will be removed)
+
+### NestJS API Endpoints (New)
+
+- `apps/api/src/modules/*` - New structured API modules
 
 ## Database Setup
 
 This project uses a **single consolidated SQL script** for easy setup:
 
-- **`DATABASE_SETUP.sql`** - Complete database schema (Version 4.8)
+- **`database/DATABASE_SETUP.sql`** - Complete database schema
   - All tables, enums, and indexes
   - Security functions with RLS policies
   - User management triggers
   - Wallet creation functions
   - Transaction management
-- **`validate_database_setup.sql`** - Validation script to test:
-  - Table existence
-  - Function availability
-  - Trigger functionality
-  - RLS policies
-  - Data integrity
 
 ### Key Database Features
 
@@ -132,59 +323,6 @@ This project uses a **single consolidated SQL script** for easy setup:
 - ✅ **Multi-currency wallet system** with balance calculations
 - ✅ **Audit trails** for all transactions
 - ✅ **Foreign key constraints** for data integrity
-
-## Development Tools
-
-### API Testing Suite
-
-Access the built-in API testing page:
-
-- **URL**: `http://localhost:3000/test-api`
-- **Features**:
-  - Test all API endpoints
-  - Real-time success/failure indicators
-  - Detailed error messages
-  - Performance timing
-  - Automated test suites
-
-### Database Validation
-
-Run the validation script to ensure database health:
-
-```bash
-psql -h your-db-host -U postgres -d your-database -f validate_database_setup.sql
-```
-
-Tests include:
-
-- Table structure validation
-- Function existence checks
-- Trigger functionality
-- RLS policy verification
-- Sample data insertion tests
-
-## Project Structure
-
-```
-src/
-├── app/                 # Next.js app router pages
-│   ├── test-api/       # API testing suite
-│   ├── admin/          # Admin management pages
-│   └── api/            # API routes
-├── components/          # React components
-│   ├── ui/             # shadcn/ui components
-│   ├── features/       # Feature-specific components
-│   └── shared/         # Shared components
-├── contexts/           # React contexts
-├── hooks/              # Custom React hooks
-├── lib/                # Utilities and configurations
-└── types/              # TypeScript type definitions
-
-Database Files:
-├── DATABASE_SETUP.sql           # Single setup script (v4.8)
-├── validate_database_setup.sql  # Validation tests
-└── supabase/migrations/         # Individual migrations
-```
 
 ## Key Features
 
@@ -220,247 +358,128 @@ Database Files:
 - Secure database functions with SECURITY DEFINER
 - Complete audit trails
 
-## API Routes
+## Development Tools
 
-### Public Routes
+### API Testing (Legacy)
+
+- **Legacy URL**: `http://localhost:3333/test-api` (Next.js routes)
+- **New API Base**: `http://localhost:4444` (NestJS endpoints)
+
+### Environment Configuration
+
+Each app has its own environment configuration:
+
+**Frontend (apps/web/.env.local):**
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+NEXT_PUBLIC_API_URL=http://localhost:4444
+```
+
+**Backend (apps/api/.env):**
+
+```env
+SUPABASE_URL=your-supabase-project-url
+SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+PORT=4444
+CORS_ORIGIN=http://localhost:3333
+```
+
+## API Architecture
+
+### Current State (Transition Period)
+
+**Legacy Next.js API Routes (apps/web/src/app/api/):**
+
+- Still active during migration
+- Will be deprecated as NestJS endpoints are completed
+
+**New NestJS API (apps/api/src/):**
+
+- Modern, scalable architecture
+- Proper separation of concerns
+- Module-based organization
+
+### API Endpoints (Migration Status)
+
+#### Completed NestJS Endpoints
+
+- `GET /` - Health check endpoint
+
+#### Legacy Next.js Routes (Being Migrated)
 
 - `POST /api/auth/*` - Authentication endpoints
-
-### Protected Routes
-
 - `GET /api/balance` - User balance information
 - `GET/POST /api/transactions/expenses` - Expense management
 - `GET /api/admin/users` - User management (Admin only)
 - `POST /api/admin/funds` - Fund management (Admin only)
 - `GET /api/admin/wallets` - Wallet management (Admin only)
 
-### Development Routes
+#### Migration Priority
 
-- `GET /test-api` - API testing suite (Development only)
+1. **Authentication endpoints** - Core security functionality
+2. **User management** - Admin operations
+3. **Balance and wallet operations** - Core financial features
+4. **Expense management** - Main user functionality
+5. **Reporting endpoints** - Analytics features
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Wallet creation fails**: Run the database validation script to check function existence
-2. **RLS policy errors**: Ensure service role key is correctly configured
-3. **Trigger not working**: Verify auth.users table permissions
-4. **Balance calculation errors**: Check transaction_type enum values
+#### Port Conflicts
 
-### Testing and Validation
+- Frontend: Make sure port 3333 is available
+- Backend: Make sure port 4444 is available
+- Check with: `lsof -i :3333` and `lsof -i :4444`
 
-Use the built-in tools:
-
-- **API Test Page**: Test all endpoints at `/test-api`
-- **Database Validation**: Run `validate_database_setup.sql`
-- **Function Testing**: Check individual database functions
-
-## Environment Variables
-
-```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
-
-# Optional: Custom configurations
-NEXT_PUBLIC_APP_NAME=SupaSpend
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Test using the API test suite (`/test-api`)
-4. Validate database changes with `validate_database_setup.sql`
-5. Make your changes
-6. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License.
-
-## 🏗️ What's Included
-
-### Database Schema (Single Script)
-
-- **Users Table**: Extended with display_name and avatar_url fields
-- **Multi-Currency Wallets**: Complete wallet management with currency support
-- **Expense System**: Full CRUD with audit trails and edit history
-- **Fund Management**: Transaction-based balance calculation
-- **Security**: Comprehensive Row-Level Security policies
-- **Storage**: Profile image bucket with proper access controls
-
-### Frontend Components
-
-- **Profile Page**: Complete profile management interface
-- **Dashboard**: Real-time balance and transaction views
-- **Admin Panel**: User and fund management tools
-- **Responsive Design**: Mobile-first with Tailwind CSS
-- **Type Safety**: 100% TypeScript coverage
-
-### API Routes
-
-- **Profile Management**: `/api/profile` (GET, PUT)
-- **User Management**: `/api/admin/users` (CRUD operations)
-- **Fund Operations**: `/api/admin/funds` (transfer management)
-- **Balance Tracking**: `/api/balance` (real-time calculations)
-- **Expense Management**: Complete expense API suite
-
-### Development Features
-
-- **Hot Reload**: Next.js development server
-- **Type Checking**: Comprehensive TypeScript integration
-- **Linting**: ESLint with custom rules
-- **Component Library**: Shadcn/ui integration
-
-## 📁 Project Structure
-
-```
-src/
-├── app/                     # Next.js app router
-│   ├── api/                # API routes
-│   ├── auth/               # Authentication
-│   ├── dashboard/          # Main dashboard
-│   ├── admin/              # Admin panel
-│   └── ...
-├── components/             # React components
-│   ├── ui/                 # Base components
-│   ├── features/           # Feature components
-│   └── shared/             # Shared components
-├── hooks/                  # Custom hooks
-├── lib/                    # Utilities
-│   ├── supabase/           # Supabase config
-│   └── utils/              # Helpers
-└── types/                  # TypeScript types
-```
-
-## 🔧 Development
-
-### Scripts
+#### Monorepo Issues
 
 ```bash
-npm run dev          # Development server
-npm run build        # Production build
-npm run start        # Production server
-npm run lint         # ESLint
-npm run type-check   # TypeScript check
+# Clear all node_modules and reinstall
+yarn clean
+yarn install
+
+# Rebuild shared package
+yarn build:shared
+
+# Restart development servers
+yarn dev
 ```
 
-### Database Management
+#### Environment Variables
 
-**Single Script Setup**: All database changes consolidated into `DATABASE_SETUP.sql`
+- Ensure both apps have proper `.env` files
+- Frontend: `apps/web/.env.local`
+- Backend: `apps/api/.env`
+- Shared Supabase URLs must match
 
-For production updates:
+#### CORS Errors
 
-1. Test changes in development Supabase project
-2. Export incremental SQL changes
-3. Apply via Supabase Dashboard SQL Editor
-4. No multiple migration files needed
-
-## 🚢 Production Deployment
-
-### Vercel (Recommended)
-
-1. Push code to GitHub
-2. Connect repo to Vercel
-3. Add environment variables
-4. Deploy
-
-### Other Platforms
-
-Works on any Next.js-compatible platform:
-
-- Netlify, Railway, DigitalOcean, AWS Amplify
-
-## ✅ Production Checklist
-
-### Database Setup
-
-- [ ] Created new Supabase project
-- [ ] Ran complete `DATABASE_SETUP.sql` script in SQL Editor
-- [ ] Verified success messages appeared (no errors)
-- [ ] Confirmed all tables, functions, and storage bucket created
-- [ ] Checked RLS policies are active
-
-### Environment Configuration
-
-- [ ] Created `.env.local` from `.env.example`
-- [ ] Added Supabase project URL
-- [ ] Added Supabase anon key
-- [ ] Added Supabase service role key
-- [ ] Verified all keys are from same project
-
-### Application Setup
-
-- [ ] Installed dependencies with `npm install`
-- [ ] Started dev server with `npm run dev`
-- [ ] Confirmed app loads without errors
-- [ ] Tested authentication flow
-
-### Admin Setup
-
-- [ ] Created first user through Supabase Dashboard (Authentication → Users) or app signup
-- [ ] Promoted to admin via SQL command: `SELECT public.change_user_role('your-email@example.com', 'admin');`
-- [ ] Verified admin navigation appears
-- [ ] Tested user creation functionality
-
-### Feature Testing
-
-- [ ] Created test user successfully
-- [ ] Added funds to test user
-- [ ] Created and managed expenses
-- [ ] Verified balance calculations
-- [ ] Tested wallet management
-- [ ] **Updated profile display name**
-- [ ] **Uploaded profile photo**
-- [ ] **Changed password successfully**
-
-### Production Deployment
-
-- [ ] Pushed code to GitHub repository
-- [ ] Connected repository to Vercel
-- [ ] Added environment variables in Vercel
-- [ ] Deployed and tested production build
-
-### Post-Deployment Verification
-
-- [ ] User authentication working
-- [ ] **Profile page accessible and functional**
-- [ ] **Avatar upload working with storage**
-- [ ] Admin can create users
-- [ ] Fund management working
-- [ ] Expense tracking functional
-- [ ] Reports generating correctly
-- [ ] RLS policies active
-- [ ] API endpoints secured
-- [ ] Mobile responsive
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-#### "Row violates RLS policy" errors
-
-- Ensure database setup completed successfully
-- Verify user roles are set correctly
-- Check admin permissions
-
-#### Wallet creation fails
-
-- Verify user creation API uses admin client
-- Check `initialize_user_balance` function exists
-- Ensure wallet limit (5 per user) not exceeded
-
-#### Balance calculation issues
-
-- Balances calculated from transactions, not stored
-- Check `get_user_balance()` function working
-- Verify transaction types are correct
+- Verify backend CORS is configured for frontend port
+- Check `apps/api/src/main.ts` CORS settings
+- Ensure `NEXT_PUBLIC_API_URL` points to correct backend
 
 ### Debug Commands
 
-Run these in Supabase SQL Editor:
+**Check app status:**
+
+```bash
+# Check if ports are in use
+lsof -i :3333 # Frontend
+lsof -i :4444 # Backend
+
+# Test API health
+curl http://localhost:4444
+
+# Check frontend
+curl http://localhost:3333
+```
+
+**Database debugging:**
 
 ```sql
 -- Check user setup
@@ -476,145 +495,147 @@ SELECT * FROM public.wallets WHERE user_id = auth.uid();
 SELECT public.get_user_balance(auth.uid());
 ```
 
-### Getting Help
+## Production Deployment
 
-1. Check troubleshooting section above
-2. Check Supabase logs in dashboard
-3. Verify environment variables
-4. Test with fresh incognito session
+### Frontend (Vercel/Netlify)
 
-## 🔒 Security Best Practices
+1. **Build the frontend app**
 
-### Environment Variables
+   ```bash
+   yarn build:shared
+   yarn build:web
+   ```
 
-- Never commit `.env.local`
-- Use different projects for dev/production
-- Rotate service role keys regularly
+2. **Deploy apps/web directory**
+   - Set build command: `yarn build`
+   - Set output directory: `apps/web/.next`
+   - Add environment variables
 
-### Database Security
+### Backend (Railway/Heroku/DigitalOcean)
 
-- RLS policies pre-configured
-- Service role for admin operations only
-- Regular permission audits
+1. **Build the backend app**
 
-### API Security
+   ```bash
+   yarn build:shared
+   yarn build:api
+   ```
 
-- Authentication middleware on all routes
-- Role-based access control
-- Input validation on endpoints
-- **Profile upload security with storage policies**
+2. **Deploy apps/api directory**
+   - Set build command: `yarn build`
+   - Set start command: `yarn start:prod`
+   - Add environment variables
+   - Set PORT environment variable
 
-## 📊 Architecture
+### Environment Variables for Production
 
-### Frontend
+**Frontend:**
 
-- **Next.js 14** with App Router
-- **TypeScript** for type safety
-- **Tailwind CSS** for styling
-- **Shadcn/ui** components
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-production-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-production-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-production-service-role-key
+NEXT_PUBLIC_API_URL=https://your-api-domain.com
+```
 
-### Backend
+**Backend:**
 
-- **Supabase** database and auth
-- **PostgreSQL** with advanced features
-- **Row Level Security** for protection
-- **Real-time subscriptions**
+```env
+SUPABASE_URL=your-production-supabase-url
+SUPABASE_ANON_KEY=your-production-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-production-service-role-key
+PORT=80
+CORS_ORIGIN=https://your-frontend-domain.com
+```
 
-### Database Design
+## Contributing
 
-- **Transaction-based balances**: Calculated from history
-- **Multi-currency wallets**: Multiple currencies per user
-- **Audit trails**: Complete change history
-- **Optimized indexes**: Fast queries
+1. **Fork the repository**
+2. **Create a feature branch**
+3. **Set up development environment**
+   ```bash
+   yarn install
+   yarn build:shared
+   yarn dev
+   ```
+4. **Make your changes**
+   - Frontend changes: `apps/web/`
+   - Backend changes: `apps/api/`
+   - Shared code: `packages/shared/`
+5. **Test your changes**
+   - Test both frontend and backend
+   - Verify API integration
+   - Check database functions if applicable
+6. **Submit a pull request**
 
-## 📄 API Documentation
+### Development Guidelines
 
-### User Management
+- **Code Standards**: Follow TypeScript best practices
+- **Monorepo**: Test changes across all affected packages
+- **API Design**: RESTful endpoints with proper HTTP status codes
+- **Database**: Use proper RLS policies and secure functions
+- **Documentation**: Update README for significant changes
 
-- `POST /api/admin/users` - Create user
-- `GET /api/admin/users` - List users
-- `PUT /api/admin/users/[id]` - Update user
-- **`GET /api/profile` - Get current user profile**
-- **`PUT /api/profile` - Update profile (display name, avatar)**
+## License
 
-### Fund Management
+This project is licensed under the MIT License.
 
-- `POST /api/admin/funds` - Add funds
-- `GET /api/balance` - Get balance
-- `GET /api/transactions` - Transaction history
+## ✨ What's New in v2.0 (Monorepo)
 
-### Expense Management
+### 🏗️ Architecture Improvements
 
-- `GET /api/expenses` - List expenses
-- `POST /api/expenses` - Create expense
-- `PUT /api/expenses/[id]` - Update expense
-- `DELETE /api/expenses/[id]` - Delete expense
+- **Turborepo**: Monorepo with efficient build caching
+- **Separated Concerns**: Frontend (3333) and Backend (4444) on different ports
+- **Shared Package**: Common types, utilities, and constants
+- **Yarn Workspaces**: Better dependency management
 
-## 🔄 Updates & Maintenance
+### 🚀 Development Experience
 
-### Upgrading
+- **Hot Reload**: Both apps with independent development
+- **Type Safety**: Shared types between frontend and backend
+- **Build Optimization**: Parallel builds with Turborepo
+- **Modular Backend**: NestJS with proper module structure
 
-1. **Backup database** (Supabase auto-backups)
-2. **Test in development** first
-3. **Run migration scripts** if provided
-4. **Verify features** after update
-5. **Update dependencies** with `npm update`
+### 📦 Package Structure
 
-### Monitoring
+```
+📁 apps/
+  📁 web/        # Next.js Frontend (Port 3333)
+  📁 api/        # NestJS Backend (Port 4444)
+📁 packages/
+  📁 shared/     # Common code and types
+```
 
-- Monitor Supabase dashboard performance
-- Check API response times
-- Monitor error rates
-- Track database query performance
+### 🔄 Migration Status
 
-## 📄 License
+- ✅ **Infrastructure**: Complete monorepo setup
+- ✅ **Frontend**: Next.js app migrated and running
+- ✅ **Backend**: NestJS scaffold with CORS configured
+- ✅ **Shared**: Types and utilities extracted
+- 🔄 **APIs**: Migrating from Next.js routes to NestJS
+- ⏳ **Integration**: Frontend-backend API integration
 
-MIT License - feel free to use for your projects.
+## 🚀 Quick Start Summary
 
-## 🆘 Support
+```bash
+# 1. Install dependencies
+yarn install
 
-For support, please:
+# 2. Set up environment files
+cp apps/web/.env.example apps/web/.env.local
+cp apps/api/.env.example apps/api/.env
 
-1. Check the troubleshooting section above
-2. Review the database logs in Supabase
-3. Verify all setup steps were completed
+# 3. Build shared package
+yarn build:shared
 
-## 🤝 Contributing
+# 4. Start development
+yarn dev
+```
 
-1. Fork repository
-2. Create feature branch
-3. Make changes and test
-4. Submit pull request
+**✨ Ready to develop!**
 
-### Code Standards
-
-- **Single Responsibility**: One purpose per component
-- **Composition**: Break large components into smaller ones
-- **TypeScript**: 100% type coverage
-- **Custom Hooks**: API interactions via hooks
-
-## 📞 Support
-
-For issues:
-
-1. Check troubleshooting section
-2. Review Supabase documentation
-3. Check GitHub issues
-4. Test with clean browser session
+- Frontend: http://localhost:3333
+- Backend: http://localhost:4444
 
 ---
 
-**Built with ❤️ for efficient expense management**
-
-## 🏆 Production Ready Features
-
-✅ **Single-Script Setup**: Complete database installation in one command  
-✅ **Profile Management**: Display names, avatars, password changes  
-✅ **Database**: Proven working structure with profile features integrated  
-✅ **Security**: Complete RLS policies and authentication with storage controls  
-✅ **Performance**: Optimized queries and indexes  
-✅ **Documentation**: Comprehensive setup and troubleshooting  
-✅ **Build**: Verified production build success  
-✅ **Deployment**: Ready for Vercel, Netlify, or any platform
-
-**⚡ 5-minute setup from zero to complete system with profiles! 🚀**
+**Built with ❤️ using modern monorepo architecture**
