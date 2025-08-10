@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd ../.. && turbo run build --filter=@supaspend/web",
+  "outputDirectory": ".next",
+  "installCommand": "cd ../.. && yarn install"
+}
