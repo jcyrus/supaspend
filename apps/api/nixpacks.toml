@@ -11,7 +11,7 @@ nixPkgs = ["nodejs-20_x", "yarn-1_x"]
 cmd = "yarn install --frozen-lockfile"
 
 [phases.build]
-cmd = "yarn build"
+cmd = "turbo run build --filter=@supaspend/api"
 
 [phases.start]
-cmd = "yarn start:prod"
+cmd = "turbo run start:prod --filter=@supaspend/api"
