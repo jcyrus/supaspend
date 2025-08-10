@@ -15,20 +15,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ProfileDropdown() {
   const supabase = createClient();
   const router = useRouter();
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     const getUser = async () => {
       const currentUser = await getCurrentUser();
       if (currentUser) {
         setUser(currentUser);
-        setUserRole(currentUser.profile?.role || null);
+        setUserProfile(currentUser.profile);
       }
     };
 
@@ -49,8 +49,11 @@ export default function ProfileDropdown() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
+            <AvatarImage src={userProfile?.avatar_url} alt="Profile photo" />
             <AvatarFallback className="bg-primary/10 text-primary">
-              {user?.email?.charAt(0).toUpperCase()}
+              {(userProfile?.display_name || user?.email)
+                ?.charAt(0)
+                .toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -60,16 +63,17 @@ export default function ProfileDropdown() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user?.email?.split("@")[0]}
+              {userProfile?.display_name || user?.email?.split("@")[0]}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user?.email}
             </p>
-            {userRole && ["admin", "superadmin"].includes(userRole) && (
-              <p className="text-xs text-primary capitalize font-medium">
-                {userRole}
-              </p>
-            )}
+            {userProfile?.role &&
+              ["admin", "superadmin"].includes(userProfile.role) && (
+                <p className="text-xs text-primary capitalize font-medium">
+                  {userProfile.role}
+                </p>
+              )}
           </div>
         </DropdownMenuLabel>
 
@@ -77,8 +81,7 @@ export default function ProfileDropdown() {
 
         <DropdownMenuItem
           onClick={() => {
-            // TODO: Navigate to profile page when implemented
-            console.log("Navigate to profile");
+            router.push("/profile");
           }}
         >
           <User className="mr-2 h-4 w-4" />
