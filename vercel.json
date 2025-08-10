@@ -1,5 +1,5 @@
 {
-  "buildCommand": "yarn build:shared && yarn build:web",
+  "buildCommand": "yarn build:web",
   "outputDirectory": "apps/web/.next",
   "installCommand": "yarn install"
 }
