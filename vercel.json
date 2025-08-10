@@ -1,5 +1,5 @@
 {
-  "buildCommand": "yarn build:web",
+  "buildCommand": "turbo run build --filter=@supaspend/web",
   "outputDirectory": "apps/web/.next",
   "installCommand": "yarn install"
 }
