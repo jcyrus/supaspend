@@ -19,6 +19,15 @@ interface TestResult {
 export default function ApiTestPage() {
   const [results, setResults] = useState<TestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [apiMode, setApiMode] = useState<"nextjs" | "nestjs">("nextjs");
+
+  // Helper to get the correct API base URL
+  const getApiUrl = (path: string) => {
+    if (apiMode === "nextjs") return path;
+    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4444";
+    // Remove leading slash if present
+    return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  };
 
   const updateResult = (
     test: string,
@@ -67,7 +76,7 @@ export default function ApiTestPage() {
     try {
       // Test 1: Create a test user
       const testUser = await runTest("Create Test User", async () => {
-        const response = await fetch("/api/admin/users", {
+        const response = await fetch(getApiUrl("/admin/users"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -87,7 +96,7 @@ export default function ApiTestPage() {
 
       // Test 2: Get users with balances
       await runTest("Get Users with Balances", async () => {
-        const response = await fetch("/api/admin/users-with-balances");
+        const response = await fetch(getApiUrl("/admin/users-with-balances"));
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Failed to get users");
         return data;
@@ -97,7 +106,7 @@ export default function ApiTestPage() {
       if (testUser?.data?.user?.id) {
         await runTest("Get User by ID", async () => {
           const response = await fetch(
-            `/api/admin/users/${testUser.data.user.id}`
+            getApiUrl(`/admin/users/${testUser.data.user.id}`)
           );
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || "Failed to get user");
@@ -107,7 +116,7 @@ export default function ApiTestPage() {
 
       // Test 4: Get balance
       await runTest("Get Current Balance", async () => {
-        const response = await fetch("/api/balance");
+        const response = await fetch(getApiUrl("/balance"));
         const data = await response.json();
         if (!response.ok)
           throw new Error(data.error || "Failed to get balance");
@@ -116,7 +125,7 @@ export default function ApiTestPage() {
 
       // Test 5: Get wallets
       await runTest("Get Wallets", async () => {
-        const response = await fetch("/api/admin/wallets");
+        const response = await fetch(getApiUrl("/admin/wallets"));
         const data = await response.json();
         if (!response.ok)
           throw new Error(data.error || "Failed to get wallets");
@@ -126,7 +135,7 @@ export default function ApiTestPage() {
       // Test 6: Create expense (if user was created successfully)
       if (testUser?.data?.user?.id) {
         await runTest("Create Test Expense", async () => {
-          const response = await fetch("/api/transactions/expenses", {
+          const response = await fetch(getApiUrl("/transactions/expenses"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -145,7 +154,7 @@ export default function ApiTestPage() {
 
       // Test 7: Get expenses
       await runTest("Get Expenses", async () => {
-        const response = await fetch("/api/transactions/expenses");
+        const response = await fetch(getApiUrl("/transactions/expenses"));
         const data = await response.json();
         if (!response.ok)
           throw new Error(data.error || "Failed to get expenses");
@@ -155,7 +164,7 @@ export default function ApiTestPage() {
       // Test 8: Fund user (if test user was created)
       if (testUser?.data?.user?.id) {
         await runTest("Fund Test User", async () => {
-          const response = await fetch("/api/admin/funds", {
+          const response = await fetch(getApiUrl("/admin/funds"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -205,6 +214,28 @@ export default function ApiTestPage() {
         <p className="text-gray-600">
           Test all API functions to validate the consolidated SQL setup
         </p>
+        <div className="mt-4 flex gap-4">
+          <Button
+            variant={apiMode === "nextjs" ? "default" : "outline"}
+            onClick={() => setApiMode("nextjs")}
+          >
+            Next.js API (Legacy)
+          </Button>
+          <Button
+            variant={apiMode === "nestjs" ? "default" : "outline"}
+            onClick={() => setApiMode("nestjs")}
+          >
+            NestJS API (New)
+          </Button>
+        </div>
+        <div className="text-xs text-muted-foreground mt-2">
+          <span>Current mode: </span>
+          <span className="font-mono px-2 py-1 rounded bg-muted">
+            {apiMode === "nextjs"
+              ? "Next.js (local)"
+              : `NestJS (${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4444"})`}
+          </span>
+        </div>
       </div>
 
       <div className="flex gap-4 mb-6">
@@ -213,7 +244,9 @@ export default function ApiTestPage() {
           disabled={isRunning}
           className="bg-blue-600 hover:bg-blue-700"
         >
-          {isRunning ? "Running Tests..." : "Run All Tests"}
+          {isRunning
+            ? `Running Tests (${apiMode})...`
+            : `Run All Tests (${apiMode})`}
         </Button>
         <Button onClick={clearResults} variant="outline" disabled={isRunning}>
           Clear Results
@@ -300,7 +333,7 @@ export default function ApiTestPage() {
                   variant="outline"
                   onClick={() =>
                     runTest("Health Check", async () => {
-                      const response = await fetch("/api/balance");
+                      const response = await fetch(getApiUrl("/balance"));
                       const data = await response.json();
                       if (!response.ok) throw new Error(data.error);
                       return data;
@@ -314,7 +347,7 @@ export default function ApiTestPage() {
                   onClick={() =>
                     runTest("Users List", async () => {
                       const response = await fetch(
-                        "/api/admin/users-with-balances"
+                        getApiUrl("/admin/users-with-balances")
                       );
                       const data = await response.json();
                       if (!response.ok) throw new Error(data.error);

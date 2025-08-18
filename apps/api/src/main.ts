@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,12 +28,23 @@ async function bootstrap() {
     }),
   );
 
+  // Swagger setup
+  const config = new DocumentBuilder()
+    .setTitle('SupaSpend API')
+    .setDescription('API documentation for SupaSpend')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api-docs', app, document);
+
   const port = process.env.PORT || 4444;
   await app.listen(port, '0.0.0.0'); // Listen on all interfaces for Railway
 
   const environment = process.env.NODE_ENV || 'development';
   console.log(`🚀 API Server running on port ${port} (${environment})`);
   console.log(`📡 Health check available at http://localhost:${port}/health`);
+  console.log(`📚 Swagger UI available at http://localhost:${port}/api-docs`);
 }
 
 void bootstrap();

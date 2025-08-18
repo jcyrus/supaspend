@@ -24,7 +24,9 @@ export function useAdminUsers() {
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
       // Fetch users with balances
-      const response = await fetch("/api/admin/users-with-balances");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4444"}/admin/users-with-balances`
+      );
       if (response.ok) {
         const responseData = await response.json();
         const { data, success } = responseData;
@@ -89,7 +91,7 @@ export function useAdminUsers() {
         if (adminUsers.length > 0) {
           const userIds = adminUsers.map((user) => user.id).join(",");
           const emailResponse = await fetch(
-            `/api/admin/users/emails?userIds=${userIds}`
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4444"}/admin/users/emails?userIds=${userIds}`
           );
 
           if (emailResponse.ok) {
@@ -120,9 +122,12 @@ export function useAdminUsers() {
   const deleteUser = useCallback(
     async (userId: string) => {
       try {
-        const response = await fetch(`/api/admin/users/${userId}`, {
-          method: "DELETE",
-        });
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4444"}/admin/users/${userId}`,
+          {
+            method: "DELETE",
+          }
+        );
 
         const result = await response.json();
 

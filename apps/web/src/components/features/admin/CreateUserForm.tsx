@@ -42,20 +42,23 @@ export function CreateUserForm({ onSuccess, onCancel }: CreateUserFormProps) {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          username: formData.username,
-          role: formData.role,
-          currency: formData.currency,
-          walletName: formData.walletName || `${formData.currency} Wallet`,
-        }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4444"}/admin/users`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            username: formData.username,
+            role: formData.role,
+            currency: formData.currency,
+            walletName: formData.walletName || `${formData.currency} Wallet`,
+          }),
+        }
+      );
 
       const result = await response.json();
 
