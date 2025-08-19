@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Put, Req, UseGuards } from '@nestjs/common';
-import { AuthGuard } from '../auth/auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SupabaseService } from '../supabase/supabase.service';
 
 class UpdateProfileDto {
@@ -26,7 +26,7 @@ class UpdateProfileDto {
  *     http://localhost:4444/profile
  */
 @Controller('profile')
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 export class ProfileController {
   constructor(private readonly supabase: SupabaseService) {}
 

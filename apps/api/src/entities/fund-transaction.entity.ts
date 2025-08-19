@@ -1,81 +1,106 @@
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { User } from './user.entity';
+import { Wallet } from './wallet.entity';
 
 export enum TransactionType {
-  FUND_IN = 'fund_in',
-  FUND_OUT = 'fund_out',
-  EXPENSE = 'expense',
   DEPOSIT = 'deposit',
   WITHDRAWAL = 'withdrawal',
+  EXPENSE = 'expense',
+  FUND_IN = 'fund_in',
+  FUND_OUT = 'fund_out',
 }
 
+@Entity('fund_transactions')
 export class FundTransaction {
   @ApiProperty({
-    description: 'Transaction ID (UUID)',
+    description: 'Fund transaction ID (UUID)',
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @ApiProperty({
-    description: 'User ID for this transaction',
+    description: 'Wallet ID involved in the transaction',
     example: '550e8400-e29b-41d4-a716-446655440001',
   })
-  user_id: string;
-
-  @ApiProperty({
-    description: 'Wallet ID for this transaction',
-    example: '550e8400-e29b-41d4-a716-446655440002',
-  })
+  @Column()
   wallet_id: string;
 
-  @ApiProperty({
-    description: 'Admin ID who performed this transaction',
-    example: '550e8400-e29b-41d4-a716-446655440003',
-    nullable: true,
-  })
-  admin_id?: string;
+  @ManyToOne(() => Wallet, (wallet) => wallet.fund_transactions)
+  @JoinColumn({ name: 'wallet_id' })
+  wallet: Wallet;
 
   @ApiProperty({
-    description: 'Type of transaction',
+    description: 'Admin user ID who performed the transaction',
+    example: '550e8400-e29b-41d4-a716-446655440002',
+  })
+  @Column()
+  admin_id: string;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'admin_id' })
+  admin: User;
+
+  @ApiProperty({
+    description: 'Transaction type',
     enum: TransactionType,
     example: TransactionType.FUND_IN,
+  })
+  @Column({
+    type: 'enum',
+    enum: TransactionType,
   })
   transaction_type: TransactionType;
 
   @ApiProperty({
     description: 'Transaction amount',
-    example: 100.0,
+    example: 100,
   })
+  @Column('decimal', { precision: 12, scale: 2 })
   amount: number;
-
-  @ApiProperty({
-    description: 'Balance before this transaction',
-    example: 50.0,
-  })
-  previous_balance: number;
-
-  @ApiProperty({
-    description: 'Balance after this transaction',
-    example: 150.0,
-  })
-  new_balance: number;
 
   @ApiProperty({
     description: 'Transaction description',
     example: 'Monthly allowance',
     nullable: true,
   })
+  @Column({ nullable: true })
   description?: string;
 
   @ApiProperty({
-    description: 'Related expense ID if this is an expense transaction',
-    example: '550e8400-e29b-41d4-a716-446655440004',
-    nullable: true,
+    description: 'Balance before transaction',
+    example: 50,
   })
-  expense_id?: string;
+  @Column('decimal', { precision: 12, scale: 2 })
+  balance_before: number;
+
+  @ApiProperty({
+    description: 'Balance after transaction',
+    example: 150,
+  })
+  @Column('decimal', { precision: 12, scale: 2 })
+  balance_after: number;
 
   @ApiProperty({
     description: 'Created at timestamp',
     example: '2023-01-01T00:00:00.000Z',
   })
-  created_at: string;
+  @CreateDateColumn()
+  created_at: Date;
+
+  @ApiProperty({
+    description: 'Updated at timestamp',
+    example: '2023-01-01T00:00:00.000Z',
+  })
+  @UpdateDateColumn()
+  updated_at: Date;
 }

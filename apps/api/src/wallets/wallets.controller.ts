@@ -13,7 +13,7 @@ import { AuthGuard } from '../auth/auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { SupabaseService } from '../supabase/supabase.service';
-import { Currency } from '../entities';
+import { CurrencyType } from '../entities/wallet.entity';
 
 /**
  * WalletsController
@@ -106,7 +106,9 @@ export class WalletsController {
     try {
       // Validate currency
       if (
-        !Object.values(Currency).includes(createWalletDto.currency as Currency)
+        !Object.values(CurrencyType).includes(
+          createWalletDto.currency as CurrencyType,
+        )
       ) {
         return {
           error: 'Invalid currency. Must be USD, VND, IDR, or PHP',

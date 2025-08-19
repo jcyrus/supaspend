@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from './user.entity';
-import { Currency } from './wallet.entity';
+import { CurrencyType } from './wallet.entity';
 
 export class WalletWithBalance {
   @ApiProperty({
@@ -11,10 +11,10 @@ export class WalletWithBalance {
 
   @ApiProperty({
     description: 'Wallet currency',
-    enum: Currency,
-    example: Currency.USD,
+    enum: CurrencyType,
+    example: CurrencyType.USD,
   })
-  currency: Currency;
+  currency: CurrencyType;
 
   @ApiProperty({
     description: 'Wallet name',
@@ -144,8 +144,8 @@ export class AdminUserExpense {
 
   @ApiProperty({
     description: 'Currency of the wallet',
-    enum: Currency,
-    example: Currency.USD,
+    enum: CurrencyType,
+    example: CurrencyType.USD,
   })
-  currency: Currency;
+  currency: CurrencyType;
 }

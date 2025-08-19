@@ -6,7 +6,7 @@ import {
   IsBoolean,
   IsUUID,
 } from 'class-validator';
-import { Currency } from '../../entities';
+import { CurrencyType } from '../../entities/wallet.entity';
 
 export class CreateWalletDto {
   @ApiProperty({
@@ -18,11 +18,11 @@ export class CreateWalletDto {
 
   @ApiProperty({
     description: 'Wallet currency',
-    enum: Currency,
-    example: Currency.USD,
+    enum: CurrencyType,
+    example: CurrencyType.USD,
   })
-  @IsEnum(Currency)
-  currency: Currency;
+  @IsEnum(CurrencyType)
+  currency: CurrencyType;
 
   @ApiProperty({
     description: 'Wallet name',

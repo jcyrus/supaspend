@@ -1,6 +1,6 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { AuthGuard } from '../auth/auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SupabaseService } from '../supabase/supabase.service';
 
 /**
@@ -13,7 +13,7 @@ import { SupabaseService } from '../supabase/supabase.service';
  */
 @ApiTags('Balance')
 @Controller('balance')
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 export class BalanceController {
   constructor(private readonly supabase: SupabaseService) {}
 
