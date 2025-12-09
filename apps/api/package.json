@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "engines": {
     "node": ">=18.0.0",
-    "yarn": ">=1.22.0"
+    "pnpm": ">=9.0.0"
   },
   "scripts": {
     "build": "nest build",
@@ -23,7 +23,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "clean": "rm -rf dist",
-    "prestart:prod": "yarn build",
+    "prestart:prod": "pnpm build",
     "postbuild": "cp package.json dist/",
     "health": "curl http://localhost:4444/health"
   },
@@ -35,7 +35,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/swagger": "^7.0.0",
     "@supabase/supabase-js": "^2.53.0",
-    "@supaspend/shared": "*",
+    "@supaspend/shared": "workspace:*",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "passport": "^0.7.0",

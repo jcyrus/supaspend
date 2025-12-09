@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
               connect-src 'self' https://*.supabase.co wss://*.supabase.co;
               frame-src 'self' https://*.supabase.co;
             `
-              .replace(/\s+/g, " ")
+              .replaceAll(/\s+/g, " ")
               .trim(),
           },
         ],
